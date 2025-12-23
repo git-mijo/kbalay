@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "463623558358",
+    "project_id": "kbalay-bf430",
+    "storage_bucket": "kbalay-bf430.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:463623558358:android:684763a992307b514f2577",
+        "android_client_info": {
+          "package_name": "com.example.flutter_hoa"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCRdbcza6q655Nq6Fv-fQnZP346RXEe_u0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
