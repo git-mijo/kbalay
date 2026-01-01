@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'features/resident/pages/resident_home_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -109,6 +110,19 @@ class _MyHomePageState extends State<MyHomePage> {
             Text(
               '$_counter',
               style: Theme.of(context).textTheme.headlineMedium,
+            ),
+            //Temporary button
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ResidentHomePage(),
+                  ),
+                );
+              },
+              child: const Text('Go to Resident Home'),
             ),
           ],
         ),
