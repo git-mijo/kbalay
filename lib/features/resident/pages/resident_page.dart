@@ -57,10 +57,10 @@ class _ResidentHomePageState extends State<ResidentPage> {
       appBar: _selectedBottomIndex == 0
           ? const ResidentAppBar()
           : _selectedBottomIndex == 1
-          ? MarketplaceAppBar()
+          ? const MarketplaceAppBar()
           : _selectedBottomIndex == 2
-          ? MyRequestsAppBar()
-          : ProfileAppBar(),
+          ? const MyRequestsAppBar()
+          : const ProfileAppBar(),
       body: IndexedStack(
         index: _selectedBottomIndex,
         children: [_buildPage(0), _buildPage(1), _buildPage(2), _buildPage(3)],

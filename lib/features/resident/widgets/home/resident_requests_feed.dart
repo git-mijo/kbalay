@@ -6,12 +6,15 @@ class ResidentRequestsFeed extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: 10,
-      itemBuilder: (context, index) {
-        return const PostCard();
-      },
+    return Container(
+      color: Colors.grey.shade50, //temporary, may remove if there's theme
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: 10,
+        itemBuilder: (context, index) {
+          return const PostCard();
+        },
+      ),
     );
   }
 }

@@ -20,6 +20,7 @@ class ResidentSectionTabs extends StatelessWidget {
         border: Border(
           bottom: BorderSide(color: Colors.grey.shade300, width: 1),
         ),
+        color: Colors.grey.shade50, //temporary, may remove if there's theme
       ),
       child: Row(
         children: List.generate(items.length, (index) {
