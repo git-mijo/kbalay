@@ -14,10 +14,10 @@ class ResidentPage extends StatefulWidget {
   const ResidentPage({super.key});
 
   @override
-  State<ResidentPage> createState() => _ResidentHomePageState();
+  State<ResidentPage> createState() => _ResidentPageState();
 }
 
-class _ResidentHomePageState extends State<ResidentPage> {
+class _ResidentPageState extends State<ResidentPage> {
   int _selectedBottomIndex = 0;
   int _selectedSectionIndex = 0;
 
