@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hoa/features/resident/widgets/my_requests/my_requests_feed.dart';
+import 'package:flutter_hoa/features/resident/widgets/my_requests/my_requests_section_tabs.dart';
 
 import '../widgets/home/resident_app_bar.dart';
 import '../widgets/home/resident_location_bar.dart';
@@ -43,7 +45,18 @@ class _ResidentPageState extends State<ResidentPage> {
       case 1:
         return const Center(child: Text('(Marketplace)'));
       case 2:
-        return const Center(child: Text('(My Requests)'));
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            MyRequestsSectionTabs(
+              selectedIndex: _selectedSectionIndex,
+              onChanged: (i) => setState(() => _selectedSectionIndex = i),
+            ),
+            Expanded(
+              child: MyRequestsFeed(selectedIndex: _selectedSectionIndex),
+            ),
+          ],
+        );
       case 3:
         return const Center(child: Text('(Profile)'));
       default:

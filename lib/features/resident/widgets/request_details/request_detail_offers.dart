@@ -7,7 +7,7 @@ class RequestDetailOffers extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: const Color.fromARGB(255, 255, 255, 255),
-      child: Padding(padding: const EdgeInsets.all(16), child: Column()),
+      child: Row(children: [Expanded(child: Text("Offers"))]),
     );
   }
 }
