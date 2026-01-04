@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'features/resident/pages/resident_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -29,7 +30,9 @@ class MyApp extends StatelessWidget {
         //
         // This works for code too, not just values: Most code changes can be
         // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: .fromSeed(
+          seedColor: const Color.fromARGB(255, 107, 107, 107),
+        ),
       ),
       home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
@@ -109,6 +112,17 @@ class _MyHomePageState extends State<MyHomePage> {
             Text(
               '$_counter',
               style: Theme.of(context).textTheme.headlineMedium,
+            ),
+            //Temporary button
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ResidentPage()),
+                );
+              },
+              child: const Text('Go to Resident Home'),
             ),
           ],
         ),
