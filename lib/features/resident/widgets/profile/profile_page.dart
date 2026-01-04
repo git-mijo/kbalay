@@ -5,20 +5,7 @@ class ProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
-
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1E5EFF),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text('Profile'),
-      ),
-
-      body: SingleChildScrollView(
+    return SingleChildScrollView(
         child: Column(
           children: [
 
@@ -190,7 +177,6 @@ class ProfilePage extends StatelessWidget {
 
             const SizedBox(height: 80),
           ],
-        ),
       ),
     );
   }

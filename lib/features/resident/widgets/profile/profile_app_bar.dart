@@ -7,7 +7,7 @@ class ProfileAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     return AppBar(
       toolbarHeight: 72,
-      automaticallyImplyLeading: false,
+      foregroundColor: Colors.white,
       backgroundColor: const Color(0xFF155DFD),
       titleSpacing: 0,
       title: Padding(
