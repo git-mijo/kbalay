@@ -19,7 +19,9 @@ class _PostCardState extends State<PostCard> {
         Navigator.push(
           context,
           PageRouteBuilder(
-            pageBuilder: (_, __, ___) => const RequestDetailsPage(),
+            pageBuilder: (_, __, ___) => const RequestDetailsPage(
+              isMyRequest: false,
+            ), //temporary prop for frontend
             transitionDuration: Duration.zero,
             reverseTransitionDuration: Duration.zero,
           ),

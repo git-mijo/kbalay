@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../pages/request_details_page.dart';
 
 class MyRequestsPostCard extends StatefulWidget {
   const MyRequestsPostCard({super.key});
@@ -13,7 +14,18 @@ class _MyRequestsPostCardState extends State<MyRequestsPostCard> {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () {},
+      onTap: () {
+        Navigator.push(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (_, __, ___) => const RequestDetailsPage(
+              isMyRequest: true,
+            ), //temporary prop for frontend
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          ),
+        );
+      },
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         onEnter: (_) => setState(() => _hovered = true),

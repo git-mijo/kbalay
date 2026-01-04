@@ -3,16 +3,18 @@ import 'package:flutter/material.dart';
 class RequestSectionTabs extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onChanged;
+  final bool showChats;
 
   const RequestSectionTabs({
     super.key,
+    required this.showChats,
     required this.selectedIndex,
     required this.onChanged,
   });
 
   @override
   Widget build(BuildContext context) {
-    final items = ['Details', 'Offers (0)'];
+    final items = <String>['Details', 'Offers (0)', if (showChats) 'Chat'];
 
     return Container(
       height: 52,
