@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hoa/features/resident/widgets/my_requests/my_requests_feed.dart';
 import 'package:flutter_hoa/features/resident/widgets/my_requests/my_requests_section_tabs.dart';
+import '../widgets/profile/profile_page.dart';
 
 import '../widgets/home/resident_app_bar.dart';
 import '../widgets/home/resident_location_bar.dart';
@@ -58,7 +59,7 @@ class _ResidentPageState extends State<ResidentPage> {
           ],
         );
       case 3:
-        return const Center(child: Text('(Profile)'));
+        return const ProfilePage();
       default:
         return const SizedBox.shrink();
     }
@@ -67,6 +68,7 @@ class _ResidentPageState extends State<ResidentPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F7FA),
       appBar: _selectedBottomIndex == 0
           ? const ResidentAppBar()
           : _selectedBottomIndex == 1
