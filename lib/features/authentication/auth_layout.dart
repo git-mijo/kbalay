@@ -2,9 +2,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_hoa/app/auth_service.dart';
+import './services/auth_service.dart';
 import 'package:flutter_hoa/features/admin/dashboard/page.dart';
-import 'package:flutter_hoa/features/authentication/login/login.dart';
+import 'package:flutter_hoa/features/authentication/signin/page.dart';
 import 'package:flutter_hoa/features/resident/pages/resident_page.dart';
 import 'package:flutter_hoa/features/splash_screen/splash_screen.dart';
 
@@ -49,13 +49,13 @@ class AuthLayout extends StatelessWidget{
                     }
                   } else {
                     // No matching user found
-                    return const LoginScreen();
+                    return const SignInScreen();
                   }
                 },
               );
             } else {
               // Not logged in
-              return pageIfNotAuthenticated ?? const LoginScreen();
+              return pageIfNotAuthenticated ?? const SignInScreen();
             }
           },
         );

@@ -1,25 +1,26 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_hoa/app/auth_service.dart';
+import '../services/auth_service.dart';
+import 'package:flutter_hoa/features/authentication/signup/page.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:sizer/sizer.dart';
 
 import '../../../core/app_export.dart';
-import './widgets/biometric.dart';
-import './widgets/form.dart';
+import 'widgets/biometric.dart';
+import 'widgets/form.dart';
 // import './widgets/sign_up_prompt_widget.dart';
 
 /// Login Screen provides secure authentication with mobile-optimized
 /// input methods and biometric options
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class SignInScreen extends StatefulWidget {
+  const SignInScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<SignInScreen> createState() => _SignInScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _SignInScreenState extends State<SignInScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -188,11 +189,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  void _handleSignUp() {
-    HapticFeedback.lightImpact();
-    Navigator.pushNamed(context, '/onboarding-flow');
-  }
-
   void _showErrorDialog(String title, String message) {
     showDialog(
       context: context,
@@ -320,6 +316,29 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                     ),
                     SizedBox(height: 3.h),
+
+                    Align(
+                      alignment: Alignment.center,
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const SignUpScreen()),
+                          );
+                        },
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 1.h),
+                          minimumSize: Size(20.w, 6.h),
+                        ),
+                        child: Text(
+                          'Create Account',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
 
                     // Biometric authentication
                     BiometricAuthWidget(onBiometricAuth: _handleBiometricAuth),

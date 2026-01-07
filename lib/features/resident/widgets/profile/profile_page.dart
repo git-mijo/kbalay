@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hoa/features/authentication/services/auth_service.dart';
+import 'package:flutter_hoa/routes/app_routes.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -167,15 +169,33 @@ class ProfilePage extends StatelessWidget {
               },
             ),
 
-            _profileActionButton(
-              icon: Icons.logout,
-              label: 'Log Out',
-              isLogout: true,
-              onTap: () {
-                authService.value.signOut();
-                // TODO: Add logout logic
-              },
-            ),
+          _profileActionButton(
+            icon: Icons.logout,
+            label: 'Sign Out',
+            isLogout: true,
+            onTap: () async {
+              try {
+                await authService.value.signOut();
+
+                Fluttertoast.showToast(
+                  msg: 'Logged out successfully',
+                  toastLength: Toast.LENGTH_SHORT,
+                  gravity: ToastGravity.BOTTOM,
+                );
+
+                // Navigate to login
+                Navigator.pushReplacementNamed(context, AppRoutes.signIn);
+
+              } catch (e) {
+                Fluttertoast.showToast(
+                  msg: 'Failed to log out: $e',
+                  toastLength: Toast.LENGTH_LONG,
+                  gravity: ToastGravity.BOTTOM,
+                );
+              }
+            },
+          ),
+
 
             const SizedBox(height: 80),
           ],

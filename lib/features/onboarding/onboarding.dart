@@ -96,7 +96,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   }
 
   void _completeOnboarding() {
-    Navigator.pushReplacementNamed(context, AppRoutes.login);
+    Navigator.pushReplacementNamed(context, AppRoutes.signIn);
   }
 
   @override
