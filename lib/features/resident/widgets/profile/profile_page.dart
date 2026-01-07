@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hoa/features/authentication/services/auth_service.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -171,6 +172,7 @@ class ProfilePage extends StatelessWidget {
               label: 'Log Out',
               isLogout: true,
               onTap: () {
+                authService.value.signOut();
                 // TODO: Add logout logic
               },
             ),
