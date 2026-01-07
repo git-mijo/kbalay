@@ -189,17 +189,19 @@ class _SplashScreenState extends State<SplashScreen>
         ),
         child: SafeArea(
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const Spacer(flex: 2),
 
+              // Logo
               FadeTransition(
                 opacity: _fade,
                 child: _Logo(theme: theme),
               ),
 
-              SizedBox(height: 48.h),
+              const Spacer(flex: 1),
 
+              // App title
               FadeTransition(
                 opacity: _fade,
                 child: Text(
@@ -212,45 +214,49 @@ class _SplashScreenState extends State<SplashScreen>
                 ),
               ),
 
-              SizedBox(height: 8.h),
+              const Spacer(flex: 1),
 
+              // Tagline
               FadeTransition(
                 opacity: _fade,
                 child: Text(
                   'Your Community, Connected',
                   style: theme.textTheme.bodyLarge?.copyWith(
-                    color: colors.onPrimary.withValues(alpha: 0.9),
+                    color: colors.onPrimary.withOpacity(0.9),
                   ),
                 ),
               ),
 
               const Spacer(flex: 2),
 
+              // Loading indicator or retry button
               if (_isInitializing)
                 _LoadingIndicator(color: colors.onPrimary)
               else if (_showRetry)
                 _RetryButton(onPressed: _retryInitialization),
 
-              SizedBox(height: 16.h),
+              const Spacer(flex: 1),
 
+              // Status message
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 32.w),
+                padding: const EdgeInsets.symmetric(horizontal: 32),
                 child: Text(
                   _status,
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: colors.onPrimary.withValues(alpha: 0.8),
+                    color: colors.onPrimary.withOpacity(0.8),
                   ),
                 ),
               ),
 
-              SizedBox(height: 48.h),
+              const Spacer(flex: 2),
             ],
           ),
         ),
       ),
     );
   }
+
 }
 
 // ─────────────────────────────────────────────────────────────

@@ -1,27 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hoa/features/admin/dashboard/page.dart';
+import 'package:flutter_hoa/features/admin/payment/page.dart';
 import '../features/splash_screen/splash_screen.dart';
 import '../features/onboarding/onboarding.dart';
 import '../features/resident/pages/resident_page.dart';
-import '../features/authentication/login/login.dart';
+import '../features/authentication/signin/page.dart';
+import '../features/authentication/signup/page.dart';
 
 
 class AppRoutes {
   // static const String initialRoute = '/';
   static const String splash = '/splash-screen';
   static const String userProfile = '/user-profile-screen';
-  static const String login = '/login-screen';
+  static const String signIn = '/signin';
+  static const String signUp = '/signup';
   static const String onboardingFlow = '/onboarding-flow';
   static const String residentDashboard = '/resident/dashboard';
-  static const String adminDashboard = '/admin/dashboard';
+  static const String adminDashboard = '/admin';
+  static const String adminPayment = '/admin/payment';
 
   static Map<String, WidgetBuilder> routes = {
-    // initialRoute: (context) => const SplashScreen(),
     splash: (context) => const SplashScreen(),
     adminDashboard: (context) => const AdminDashboard(),
+    adminPayment: (context) => const PaymentManagement(),
     residentDashboard: (context) => const ResidentPage(),
     // userProfile: (context) => const UserProfileScreen(),
-    login: (context) => const LoginScreen(),
+    signIn: (context) => const SignInScreen(),
+    signUp: (context) => const SignUpScreen(),
     onboardingFlow: (context) => const OnboardingFlow(),
   };
 }

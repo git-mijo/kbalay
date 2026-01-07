@@ -228,7 +228,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   void _navigateToPaymentManagement() {
-    // Navigator.pushNamed(context, AppRoutes.splash);
+    Navigator.pushNamed(context, AppRoutes.adminPayment);
   }
 
   @override
@@ -327,7 +327,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 ),
                 SizedBox(height: 1.5.h),
                 QuickActionsWidget(
-                  onPaymentManagement: _navigateToPaymentManagement,
+                  onPaymentManagement: () {
+                    Navigator.pushNamed(context, AppRoutes.adminPayment);
+                  },
                   onGenerateReport: () {
                     HapticFeedback.lightImpact();
                     // Navigator.pushNamed(context, AppRoutes.financialReports);
