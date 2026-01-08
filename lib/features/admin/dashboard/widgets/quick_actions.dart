@@ -49,7 +49,7 @@ class QuickActionsWidget extends StatelessWidget {
         Expanded(
           child: _ActionButton(
             icon: Icons.notifications_active,
-            label: 'Send\nNotification',
+            label: 'Announcements',
             color: theme.colorScheme.secondary,
             onTap: () {
               HapticFeedback.lightImpact();

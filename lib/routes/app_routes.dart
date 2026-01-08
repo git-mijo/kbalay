@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hoa/features/admin/announcement/page.dart';
 import 'package:flutter_hoa/features/admin/dashboard/page.dart';
 import 'package:flutter_hoa/features/admin/payment/page.dart';
 import '../features/splash_screen/splash_screen.dart';
@@ -18,11 +19,13 @@ class AppRoutes {
   static const String residentDashboard = '/resident/dashboard';
   static const String adminDashboard = '/admin';
   static const String adminPayment = '/admin/payment';
+  static const String adminAnnouncement = '/admin/announcement';
 
   static Map<String, WidgetBuilder> routes = {
     splash: (context) => const SplashScreen(),
     adminDashboard: (context) => const AdminDashboard(),
     adminPayment: (context) => const PaymentManagement(),
+    adminAnnouncement: (context) => const AdminAnnouncementsScreen(),
     residentDashboard: (context) => const ResidentPage(),
     // userProfile: (context) => const UserProfileScreen(),
     signIn: (context) => const SignInScreen(),
