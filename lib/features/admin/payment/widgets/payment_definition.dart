@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_hoa/features/admin/payment/services/payment_service.dart';
 import 'package:flutter_hoa/theme/app_theme.dart';
 import 'package:sizer/sizer.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -114,7 +115,7 @@ class PaymentDefinitionTabWidget extends StatelessWidget {
                             child: _InfoItem(
                               label: 'Amount',
                               value:
-                                  '\$${(definition['amount'] as double).toStringAsFixed(2)}',
+                                  '\₱${(definition['amount'] as double).toStringAsFixed(2)}',
                             ),
                           ),
                           Expanded(
@@ -131,35 +132,29 @@ class PaymentDefinitionTabWidget extends StatelessWidget {
                           Expanded(
                             child: _InfoItem(
                               label: 'Due Day',
-                              value: 'Day ${definition['dueDay']}',
-                            ),
-                          ),
-                          Expanded(
-                            child: _InfoItem(
-                              label: 'Grace Period',
-                              value: '${definition['gracePeriod']} days',
+                              value: '${definition['dueDay']}',
                             ),
                           ),
                         ],
                       ),
-                      SizedBox(height: 1.h),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _InfoItem(
-                              label: 'Late Fee',
-                              value:
-                                  '\$${(definition['lateFee'] as double).toStringAsFixed(2)}',
-                            ),
-                          ),
-                          Expanded(
-                            child: _InfoItem(
-                              label: 'Applicable Units',
-                              value: definition['applicableUnits'] as String,
-                            ),
-                          ),
-                        ],
-                      ),
+                      // SizedBox(height: 1.h),
+                      // Row(
+                      //   children: [
+                      //     Expanded(
+                      //       child: _InfoItem(
+                      //         label: 'Late Fee',
+                      //         value:
+                      //             '\$${(definition['lateFee'] as double).toStringAsFixed(2)}',
+                      //       ),
+                      //     ),
+                      //     Expanded(
+                      //       child: _InfoItem(
+                      //         label: 'Applicable Units',
+                      //         value: definition['applicableUnits'] as String,
+                      //       ),
+                      //     ),
+                      //   ],
+                      // ),
                       SizedBox(height: 2.h),
                       Row(
                         children: [
@@ -168,6 +163,7 @@ class PaymentDefinitionTabWidget extends StatelessWidget {
                               onPressed: () {
                                 HapticFeedback.lightImpact();
                                 onEdit(definition['id'] as String);
+                                // onEditPayment(context, definition['id'] as String, definition);
                               },
                               icon: const Icon(Icons.edit, size: 18),
                               label: const Text('Edit'),
@@ -212,6 +208,158 @@ class PaymentDefinitionTabWidget extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  void onEditPayment(BuildContext context, String id, Map<String, dynamic> data) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final nameController = TextEditingController(text: data['name']);
+        final descriptionController =
+            TextEditingController(text: data['description']);
+        final amountController =
+            TextEditingController(text: data['amount'].toString());
+
+        // Frequency mapping
+        final Map<String, int> frequencyMap = {
+          'Daily': 1,
+          'Weekly': 2,
+          'Monthly': 3,
+          'Yearly': 4,
+          'One-time': 5,
+        };
+
+        // Reverse map for initial value
+        String selectedFrequency = frequencyMap.entries
+            .firstWhere(
+                (e) => e.value == int.tryParse(data['frequency'] ?? '0'),
+                orElse: () => const MapEntry('Monthly', 3))
+            .key;
+
+        final dueDayController =
+            TextEditingController(text: data['dueDay']?.toString() ?? '');
+        bool isEnabled = data['isActive'] ?? false;
+
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Edit Payment Definition'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Name
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(labelText: 'Name'),
+                    ),
+                    SizedBox(height: 2.h),
+
+                    // Description
+                    TextField(
+                      controller: descriptionController,
+                      decoration:
+                          const InputDecoration(labelText: 'Description'),
+                    ),
+                    SizedBox(height: 2.h),
+
+                    // Amount
+                    TextField(
+                      controller: amountController,
+                      decoration: const InputDecoration(labelText: 'Amount'),
+                      keyboardType: TextInputType.number,
+                    ),
+                    SizedBox(height: 2.h),
+
+                    // Frequency dropdown
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedFrequency,
+                      decoration:
+                          const InputDecoration(labelText: 'Frequency'),
+                      items: frequencyMap.keys
+                        .map(
+                          (freq) => DropdownMenuItem(
+                            value: freq,
+                            child: Text(freq),
+                          ),
+                        )
+                        .toList(),
+                      onChanged: (value) {
+                        if (value == null) return;
+                        setState(() {
+                          selectedFrequency = value;
+
+                          // Reset dueDay if frequency changes
+                          dueDayController.text = '';
+                        });
+                      },
+                    ),
+                    SizedBox(height: 2.h),
+
+                    // Due Day / Month
+                    if (selectedFrequency == 'Monthly')
+                      TextField(
+                        controller: dueDayController,
+                        decoration: const InputDecoration(
+                            labelText: 'Day of Month (1-31)'),
+                        keyboardType: TextInputType.number,
+                      ),
+                    if (selectedFrequency == 'Yearly')
+                      TextField(
+                        controller: dueDayController,
+                        decoration: const InputDecoration(
+                            labelText: 'Month (1-12)'),
+                        keyboardType: TextInputType.number,
+                      ),
+
+                    SizedBox(height: 2.h),
+
+                    // isEnabled switch
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Active'),
+                        Switch(
+                          value: isEnabled,
+                          onChanged: (value) {
+                            setState(() {
+                              isEnabled = value;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    // Update Firestore
+                    await PaymentService().updatePaymentCategory(id, {
+                      'categoryName': nameController.text,
+                      'categoryDescription': descriptionController.text,
+                      'defaultFee': double.tryParse(amountController.text) ?? 0,
+                      'frequency': frequencyMap[selectedFrequency],
+                      'dueDayOfMonth':
+                          int.tryParse(dueDayController.text) ?? 0,
+                      'isEnabled': isEnabled,
+                    });
+
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
