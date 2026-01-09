@@ -1,22 +1,36 @@
 import 'package:flutter/material.dart';
 
 class RequestDetailBody extends StatelessWidget {
-  const RequestDetailBody({super.key});
+  final Map<String, dynamic> requestData;
+  final String categoryName;
+
+  const RequestDetailBody({
+    super.key,
+    required this.requestData,
+    required this.categoryName,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final requesterName = requestData['requesterName'] ?? 'Anonymous';
+    final helpersNeeded = requestData['helpersNeeded'] ?? 0;
+    final helpersAccepted = requestData['helpersAccepted'] ?? 0;
+    final description = requestData['description'] ?? 'No description';
+    final distance = requestData['geoPoint'] != null ? "Nearby" : "N/A";
+
     return Container(
-      color: const Color.fromARGB(255, 255, 255, 255),
+      color: Colors.white,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+            // Title & Category
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Expanded(
                   child: Text(
-                    'Need friends for ML 5-Man',
+                    requestData['title'] ?? '',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w100,
@@ -26,17 +40,14 @@ class RequestDetailBody extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: const Color.fromARGB(255, 221, 233, 255),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Text(
-                    'Moving',
-                    style: TextStyle(
+                  child: Text(
+                    categoryName,
+                    style: const TextStyle(
                       color: Color.fromARGB(255, 47, 72, 156),
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
@@ -45,16 +56,16 @@ class RequestDetailBody extends StatelessWidget {
                 ),
               ],
             ),
+
             const SizedBox(height: 18),
+
+            // Requester info
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Expanded(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 16,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                     decoration: BoxDecoration(
                       color: Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(12),
@@ -70,33 +81,21 @@ class RequestDetailBody extends StatelessWidget {
                           ),
                           child: Center(
                             child: Text(
-                              "J",
-                              style: TextStyle(
-                                color: Color.fromARGB(255, 255, 255, 255),
-                                fontSize: 14,
-                              ),
+                              requesterName.isNotEmpty ? requesterName[0] : "U",
+                              style: const TextStyle(color: Colors.white, fontSize: 14),
                             ),
                           ),
                         ),
-                        SizedBox(width: 14),
+                        const SizedBox(width: 14),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              Text(requesterName, style: const TextStyle(fontSize: 16)),
+                              const SizedBox(height: 2),
                               Text(
-                                "Juan Dela Cruz",
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.black,
-                                ),
-                              ),
-                              SizedBox(height: 2),
-                              Text(
-                                "8 Tulong",
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  color: Color.fromARGB(255, 75, 75, 75),
-                                ),
+                                "$helpersAccepted helpers accepted",
+                                style: const TextStyle(fontSize: 14, color: Color.fromARGB(255, 75, 75, 75)),
                               ),
                             ],
                           ),
@@ -107,14 +106,14 @@ class RequestDetailBody extends StatelessWidget {
                 ),
               ],
             ),
+
             const SizedBox(height: 18),
+
+            // Description
             Row(
               children: [
                 Expanded(
-                  child: Text(
-                    "Description",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                  ),
+                  child: Text("Description", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                 ),
               ],
             ),
@@ -122,113 +121,19 @@ class RequestDetailBody extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: Text(
-                    "Need 2 people people to beat Aling Maria's Team in ML 5-Man. Need core and marksman specifically. Let's go guys woo waa wii wuu.",
-                    style: TextStyle(fontSize: 16),
-                  ),
+                  child: Text(description, style: const TextStyle(fontSize: 16)),
                 ),
               ],
             ),
+
             const SizedBox(height: 18),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: const [
-                            Icon(
-                              Icons.people,
-                              size: 16,
-                              color: Color.fromARGB(255, 75, 75, 75),
-                            ),
-                            SizedBox(width: 8),
-                            Text(
-                              "Helpers Needed",
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Color.fromARGB(255, 75, 75, 75),
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          "2 People",
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.black,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                SizedBox(width: 14),
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: const [
-                            Icon(
-                              Icons.location_pin,
-                              size: 16,
-                              color: Color.fromARGB(255, 75, 75, 75),
-                            ),
-                            SizedBox(width: 8),
-                            Text(
-                              "Distance",
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Color.fromARGB(255, 75, 75, 75),
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          "600m away",
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.black,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
+
+            // Helpers Needed & Distance
             Row(
               children: [
                 Expanded(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
                       color: Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(12),
@@ -238,29 +143,37 @@ class RequestDetailBody extends StatelessWidget {
                       children: [
                         Row(
                           children: const [
-                            Icon(
-                              Icons.people,
-                              size: 16,
-                              color: Color.fromARGB(255, 75, 75, 75),
-                            ),
+                            Icon(Icons.people, size: 16, color: Color.fromARGB(255, 75, 75, 75)),
                             SizedBox(width: 8),
-                            Text(
-                              "Helpers Needed",
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Color.fromARGB(255, 75, 75, 75),
-                              ),
-                            ),
+                            Text("Helpers Needed", style: TextStyle(fontSize: 14, color: Color.fromARGB(255, 75, 75, 75))),
                           ],
                         ),
-                        SizedBox(height: 4),
-                        Text(
-                          "Juan Dela Cruz",
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.black,
-                          ),
+                        const SizedBox(height: 4),
+                        Text("$helpersNeeded People", style: const TextStyle(fontSize: 16, color: Colors.black)),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: const [
+                            Icon(Icons.location_pin, size: 16, color: Color.fromARGB(255, 75, 75, 75)),
+                            SizedBox(width: 8),
+                            Text("Distance", style: TextStyle(fontSize: 14, color: Color.fromARGB(255, 75, 75, 75))),
+                          ],
                         ),
+                        const SizedBox(height: 4),
+                        Text(distance, style: const TextStyle(fontSize: 16, color: Colors.black)),
                       ],
                     ),
                   ),
@@ -273,5 +186,3 @@ class RequestDetailBody extends StatelessWidget {
     );
   }
 }
-
-//continue here, request body then request offer body

@@ -335,12 +335,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     // Navigator.pushNamed(context, AppRoutes.financialReports);
                   },
                   onSendNotification: () {
-                    HapticFeedback.lightImpact();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Opening notification composer...'),
-                      ),
-                    );
+                    Navigator.pushNamed(context, AppRoutes.adminAnnouncement);
+                    // HapticFeedback.lightImpact();
+                    // ScaffoldMessenger.of(context).showSnackBar(
+                    //   const SnackBar(
+                    //     content: Text('Opening notification composer...'),
+                    //   ),
+                    // );
                   },
                 ),
                 SizedBox(height: 3.h),

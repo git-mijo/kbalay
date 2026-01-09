@@ -15,16 +15,16 @@ class _MyRequestsPostCardState extends State<MyRequestsPostCard> {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () {
-        Navigator.push(
-          context,
-          PageRouteBuilder(
-            pageBuilder: (_, __, ___) => const RequestDetailsPage(
-              isMyRequest: true,
-            ), //temporary prop for frontend
-            transitionDuration: Duration.zero,
-            reverseTransitionDuration: Duration.zero,
-          ),
-        );
+        // Navigator.push(
+        //   context,
+        //   PageRouteBuilder(
+        //     pageBuilder: (_, __, ___) => const RequestDetailsPage(
+        //       isMyRequest: true,
+        //     ), //temporary prop for frontend
+        //     transitionDuration: Duration.zero,
+        //     reverseTransitionDuration: Duration.zero,
+        //   ),
+        // );
       },
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
