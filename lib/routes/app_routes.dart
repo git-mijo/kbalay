@@ -5,7 +5,7 @@ import 'package:flutter_hoa/features/admin/payment/page.dart';
 import 'package:flutter_hoa/features/resident/widgets/profile/profile_settings.dart';
 import '../features/splash_screen/splash_screen.dart';
 import '../features/onboarding/onboarding.dart';
-import '../features/resident/pages/resident_page.dart';
+import '../features/resident/pages/page.dart';
 import '../features/authentication/signin/page.dart';
 import '../features/authentication/signup/page.dart';
 
