@@ -6,7 +6,7 @@ import '../widgets/profile/profile_page.dart';
 import '../widgets/home/resident_app_bar.dart';
 import '../widgets/home/resident_location_bar.dart';
 import '../widgets/home/resident_section_tabs.dart';
-import '../widgets/home/resident_requests_feed.dart';
+import '../widgets/requests/requests_feed.dart';
 import '../widgets/home/resident_announcements_feed.dart';
 import '../widgets/resident_bottom_nav.dart';
 import '../widgets/marketplace/marketplace_app_bar.dart';
@@ -54,7 +54,7 @@ class _ResidentPageState extends State<ResidentPage> {
               onChanged: (i) => setState(() => _selectedSectionIndex = i),
             ),
             Expanded(
-              child: MyRequestsFeed(selectedIndex: _selectedSectionIndex),
+              child: MyRequestsFeed(),
             ),
           ],
         );

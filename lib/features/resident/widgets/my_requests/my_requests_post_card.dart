@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../pages/request_details_page.dart';
+import '../requests/request_details_page.dart';
 
 class MyRequestsPostCard extends StatefulWidget {
   const MyRequestsPostCard({super.key});

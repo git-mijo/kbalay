@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../pages/request_details_page.dart';
+import '../requests/request_details_page.dart';
 
 class PostCard extends StatefulWidget {
   final String requestId;
@@ -12,6 +12,7 @@ class PostCard extends StatefulWidget {
   final String status;
   final DateTime timePosted;
   final dynamic geoPoint;
+  final dynamic isMyRequest;
 
   const PostCard({
     super.key,
@@ -23,6 +24,7 @@ class PostCard extends StatefulWidget {
     required this.helpersAccepted,
     required this.status,
     required this.timePosted,
+    required this.isMyRequest,
     this.geoPoint,
   });
 
@@ -142,7 +144,8 @@ class _PostCardState extends State<PostCard> {
                         ),
                       ),
                     ),
-                    ElevatedButton(
+                    if (widget.isMyRequest != true)
+                      ElevatedButton(
                       onPressed: () {},
                       style: ButtonStyle(
                         mouseCursor: WidgetStateMouseCursor.clickable,

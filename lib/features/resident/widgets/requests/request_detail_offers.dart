@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_hoa/features/resident/widgets/request_details/request_offer_card.dart';
+import 'package:flutter_hoa/features/resident/widgets/requests/request_offer_card.dart';
 
 class RequestDetailOffers extends StatelessWidget {
   const RequestDetailOffers({super.key});
