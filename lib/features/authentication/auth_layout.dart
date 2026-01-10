@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import './services/auth_service.dart';
 import 'package:flutter_hoa/features/admin/dashboard/page.dart';
 import 'package:flutter_hoa/features/authentication/signin/page.dart';
-import 'package:flutter_hoa/features/resident/pages/page.dart';
+import 'package:flutter_hoa/features/resident/home/page.dart';
 import 'package:flutter_hoa/features/splash_screen/splash_screen.dart';
 
 class AuthLayout extends StatelessWidget{

@@ -16,6 +16,7 @@ class RequestDetailBody extends StatelessWidget {
     final helpersNeeded = requestData['helpersNeeded'] ?? 0;
     final helpersAccepted = requestData['helpersAccepted'] ?? 0;
     final description = requestData['description'] ?? 'No description';
+    final isMyRequest = requestData['isMyRequest'];
     final distance = requestData['geoPoint'] != null ? "Nearby" : "N/A";
 
     return Container(

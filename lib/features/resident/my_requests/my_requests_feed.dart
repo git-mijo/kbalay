@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import '../home/post_card.dart';
-import './widgets/create_request_page.dart';
+import '../requests/request_card.dart';
+import 'widgets/create_request_page.dart';
 
 class MyRequestsFeed extends StatefulWidget {
   const MyRequestsFeed({super.key});
@@ -89,7 +89,6 @@ class _MyRequestsFeedState extends State<MyRequestsFeed> {
         stream: _db
             .collection('requests')
             .where('requesterId', isEqualTo: userId)
-            // remove orderBy to avoid excluding null timestamps
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {

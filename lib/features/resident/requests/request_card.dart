@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import '../requests/request_details_page.dart';
+import 'request_details_page.dart';
 
 class PostCard extends StatefulWidget {
   final String requestId;
@@ -52,7 +51,7 @@ class _PostCardState extends State<PostCard> {
           MaterialPageRoute(
             builder: (_) => RequestDetailsPage(
               requestId: widget.requestId,
-              isMyRequest: false,
+              isMyRequest: widget.isMyRequest,
             ),
           ),
         );
@@ -146,31 +145,48 @@ class _PostCardState extends State<PostCard> {
                     ),
                     if (widget.isMyRequest != true)
                       ElevatedButton(
-                      onPressed: () {},
-                      style: ButtonStyle(
-                        mouseCursor: WidgetStateMouseCursor.clickable,
-                        backgroundColor: WidgetStateProperty.resolveWith<Color>(
-                          (states) {
-                            if (states.contains(WidgetState.hovered)) return const Color(0xFF0F4FE0);
-                            return const Color(0xFF155DFD);
-                          },
+                        onPressed: () {},
+                        style: ButtonStyle(
+                          mouseCursor: WidgetStateMouseCursor.clickable,
+                          backgroundColor: WidgetStateProperty.resolveWith<Color>(
+                            (states) {
+                              if (states.contains(WidgetState.hovered)) return const Color(0xFF0F4FE0);
+                              return const Color(0xFF155DFD);
+                            },
+                          ),
+                          foregroundColor: WidgetStateProperty.all(Colors.white),
+                          elevation: WidgetStateProperty.resolveWith<double>(
+                            (states) => states.contains(WidgetState.hovered) ? 2 : 0,
+                          ),
+                          padding: WidgetStateProperty.all(
+                            const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                          ),
+                          shape: WidgetStateProperty.all(
+                            RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
                         ),
-                        foregroundColor: WidgetStateProperty.all(Colors.white),
-                        elevation: WidgetStateProperty.resolveWith<double>(
-                          (states) => states.contains(WidgetState.hovered) ? 2 : 0,
+                        child: const Text(
+                          'Offer help',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w100),
                         ),
-                        padding: WidgetStateProperty.all(
-                          const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                      )
+                    else
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade700,
+                          borderRadius: BorderRadius.circular(6),
                         ),
-                        shape: WidgetStateProperty.all(
-                          RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        child: const Text(
+                          "My request",
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      child: const Text(
-                        'Offer help',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w100),
-                      ),
-                    ),
+                      )
+
                   ],
                 ),
               ],
