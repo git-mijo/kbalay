@@ -57,7 +57,7 @@ class _ResidentPageState extends State<ResidentPage> {
             ),
             Expanded(
               child: MarketplaceListingsFeed(
-                showCreateButton: _selectedMarketplaceIndex == 1,
+                isMyListings: _selectedMarketplaceIndex == 1,
               ),
             ),
           ],

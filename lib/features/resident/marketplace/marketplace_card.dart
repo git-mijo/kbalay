@@ -8,12 +8,13 @@ class MarketplaceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final photos = data['photosBase64'] as List?;
+    final photos = data['photos'] as List?;
     final String? base64Image = (photos != null && photos.isNotEmpty)
         ? photos.first
         : null;
 
-    final isSold = data['status'] == 'SOLD' || data['status'] == 'WITHDRAWN';
+    final status = data['status'];
+    final isOverlay = status == 'SOLD' || status == 'WITHDRAWN';
 
     return GestureDetector(
       onTap: () {
@@ -50,14 +51,14 @@ class MarketplaceCard extends StatelessWidget {
                         fit: BoxFit.cover,
                       ),
 
-                if (isSold)
+                if (isOverlay)
                   Positioned.fill(
                     child: Container(
                       color: Colors.black45,
                       alignment: Alignment.center,
-                      child: const Text(
-                        'SOLD',
-                        style: TextStyle(
+                      child: Text(
+                        status, // will display "SOLD" or "WITHDRAWN"
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 20,
                           fontWeight: FontWeight.bold,

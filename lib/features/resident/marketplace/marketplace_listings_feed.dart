@@ -5,9 +5,9 @@ import './create_listing_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class MarketplaceListingsFeed extends StatelessWidget {
-  final bool showCreateButton;
+  final bool isMyListings;
 
-  const MarketplaceListingsFeed({super.key, this.showCreateButton = false});
+  const MarketplaceListingsFeed({super.key, this.isMyListings = false});
 
   Future<Map<String, String>> _fetchCategories() async {
     final snapshot = await FirebaseFirestore.instance
@@ -22,17 +22,26 @@ class MarketplaceListingsFeed extends StatelessWidget {
     return map;
   }
 
-  Future<Map<String, String>> _fetchUsers() async {
+  Future<Map<String, Map<String, String>>> _fetchUsers() async {
     final snapshot = await FirebaseFirestore.instance
         .collection('master_residents')
         .get();
-    final map = <String, String>{};
+
+    final map = <String, Map<String, String>>{};
+
     for (var doc in snapshot.docs) {
       final data = doc.data();
-      map[data['userId']] =
+
+      final fullName =
           '${data['firstName'] ?? 'Anonymous'} ${data['lastName'] ?? ''}'
               .trim();
+
+      map[data['userId']] = {
+        'name': fullName,
+        'profileImageBase64': data['profileImageBase64'] ?? '',
+      };
     }
+
     return map;
   }
 
@@ -53,7 +62,7 @@ class MarketplaceListingsFeed extends StatelessWidget {
         label: const Text("Create Listing"),
         backgroundColor: Colors.blueAccent,
       ),
-      body: FutureBuilder<List<Map<String, String>>>(
+      body: FutureBuilder<List<Map<String, dynamic>>>(
         future: Future.wait([_fetchCategories(), _fetchUsers()]),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -64,14 +73,13 @@ class MarketplaceListingsFeed extends StatelessWidget {
             return const Center(child: Text('Error loading data'));
           }
 
-          final categoryMap = snapshot.data![0];
-          final userMap = snapshot.data![1];
+          final categoryMap = snapshot.data![0] as Map<String, String>;
+          final userMap = snapshot.data![1] as Map<String, Map<String, String>>;
 
           return StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('marketplace_listings')
-                .where('status', isEqualTo: 'ACTIVE')
-                // .orderBy('timePosted', descending: true) //TODO-QUERY:: need to add order by, need composite index in firestore
+                .orderBy('timePosted', descending: true)
                 .snapshots(),
             builder: (context, listingsSnapshot) {
               if (listingsSnapshot.connectionState == ConnectionState.waiting) {
@@ -93,10 +101,14 @@ class MarketplaceListingsFeed extends StatelessWidget {
               final listings = docs
                   .map((doc) {
                     final data = doc.data() as Map<String, dynamic>;
+                    final sellerInfo = userMap[data['sellerId']] ?? {};
+
                     return {
                       'listingId': doc.id,
                       'sellerId': data['sellerId'],
-                      'sellerName': userMap[data['sellerId']] ?? 'Anonymous',
+                      'sellerName': sellerInfo['name'] ?? 'Anonymous',
+                      'sellerProfileImage':
+                          sellerInfo['profileImageBase64'] ?? '',
                       'title': data['title'],
                       'price': data['price'],
                       'category': data['categoryId'],
@@ -106,16 +118,20 @@ class MarketplaceListingsFeed extends StatelessWidget {
                       'status': data['status'],
                       'timePosted': (data['timePosted'] as Timestamp?)
                           ?.toDate(),
-                      'photosBase64': List<String>.from(data['photos'] ?? []),
+                      'photos': List<String>.from(data['photos'] ?? []),
                     };
                   })
                   .where((l) {
-                    final keep = user != null
-                        ? (showCreateButton
-                              ? l['sellerId'] == user.uid
-                              : l['sellerId'] != user.uid)
-                        : true;
-                    return keep;
+                    if (user == null) return true;
+
+                    if (isMyListings) {
+                      // My listings: keep all statuses
+                      return l['sellerId'] == user.uid;
+                    } else {
+                      // Others: only ACTIVE
+                      return l['sellerId'] != user.uid &&
+                          l['status'] == 'ACTIVE';
+                    }
                   })
                   .toList();
 
