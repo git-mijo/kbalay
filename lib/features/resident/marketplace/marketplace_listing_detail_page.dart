@@ -1,84 +1,82 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import './create_listing_page.dart';
 import 'dart:convert';
 
-class MarketplaceListingDetailPage extends StatelessWidget {
+class MarketplaceListingDetailPage extends StatefulWidget {
   final Map<String, dynamic> data;
 
   const MarketplaceListingDetailPage({super.key, required this.data});
 
   @override
+  State<MarketplaceListingDetailPage> createState() =>
+      _MarketplaceListingDetailPageState();
+}
+
+class _MarketplaceListingDetailPageState
+    extends State<MarketplaceListingDetailPage> {
+  late Map<String, dynamic> data;
+
+  @override
+  void initState() {
+    super.initState();
+    data = Map<String, dynamic>.from(widget.data);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final List images = data['photosBase64'] ?? [];
-    final isSold = data['status'] == 'SOLD' || data['status'] == 'WITHDRAWN';
-    final currentUserId = 'xFjiZSViGdNzmzqsgU3oSuYWdBq2';
+    final List images = data['photos'] ?? [];
+    final status = data['status'];
+    final isOverlay = status == 'SOLD' || status == 'WITHDRAWN';
+    final user = FirebaseAuth.instance.currentUser;
+    final currentUserId = user?.uid;
+
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 72,
         backgroundColor: const Color(0xFF155DFD),
-        foregroundColor: const Color.fromARGB(255, 255, 255, 255),
-        automaticallyImplyLeading: true,
+        foregroundColor: Colors.white,
         titleSpacing: 0,
         title: const Padding(
           padding: EdgeInsets.symmetric(horizontal: 16),
-          child: Text('Item Details', style: TextStyle(color: Colors.white)),
+          child: Text('Item Details'),
         ),
       ),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Swipable images
+            // Images
             SizedBox(
               height: MediaQuery.of(context).size.height * 0.5,
               child: PageView.builder(
                 itemCount: images.isNotEmpty ? images.length : 1,
-                physics: const BouncingScrollPhysics(),
                 itemBuilder: (context, index) {
-                  return Stack(
-                    children: [
-                      images.isNotEmpty
-                          ? Image.memory(
-                              base64Decode(images[index]),
-                              width: double.infinity,
-                              height: double.infinity,
-                              fit: BoxFit.cover,
-                            )
-                          : Image.asset(
-                              'images/no-image-item.png',
-                              width: double.infinity,
-                              height: double.infinity,
-                              fit: BoxFit.cover,
-                            ),
-                      if (isSold)
-                        Positioned.fill(
-                          child: Container(
-                            color: Colors.black45,
-                            alignment: Alignment.center,
-                            child: const Text(
-                              'SOLD',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  );
+                  return images.isNotEmpty
+                      ? Image.memory(
+                          base64Decode(images[index]),
+                          width: double.infinity,
+                          height: double.infinity,
+                          fit: BoxFit.cover,
+                        )
+                      : Image.asset(
+                          'images/no-image-item.png',
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity,
+                        );
                 },
               ),
             ),
 
             const SizedBox(height: 16),
 
-            // Title + Buy Now button
+            // Title + action
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title
                   Expanded(
                     child: Text(
                       data['title'],
@@ -88,37 +86,45 @@ class MarketplaceListingDetailPage extends StatelessWidget {
                       ),
                     ),
                   ),
+                  const SizedBox(width: 12),
 
-                  if (data['sellerId'] != currentUserId) ...[
-                    const SizedBox(width: 12),
+                  // EDIT (owner)
+                  if (currentUserId != null &&
+                      data['sellerId'] == currentUserId)
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.edit, size: 18),
+                      label: const Text('Edit'),
+                      onPressed: () async {
+                        final updatedData = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => CreateListingPage(
+                              listingId: data['listingId'],
+                              initialData: data,
+                            ),
+                          ),
+                        );
 
+                        if (updatedData != null &&
+                            updatedData is Map<String, dynamic>) {
+                          setState(() {
+                            data = updatedData;
+                          });
+                        }
+                      },
+                    ),
+
+                  // BUY (not owner)
+                  if (currentUserId != null &&
+                      data['sellerId'] != currentUserId)
                     ElevatedButton(
                       onPressed: () {
-                        // placeholder action
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Buy Now Clicked')),
                         );
                       },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF155DFD),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        elevation: 3,
-                      ),
-                      child: const Text(
-                        'Buy Now',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      child: const Text('Buy Now'),
                     ),
-                  ],
                 ],
               ),
             ),
@@ -133,14 +139,14 @@ class MarketplaceListingDetailPage extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Color.fromARGB(255, 54, 117, 255),
+                  color: Color(0xFF3675FF),
                 ),
               ),
             ),
 
             const SizedBox(height: 16),
 
-            // Description label
+            // Description
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),
               child: Text(
@@ -148,17 +154,10 @@ class MarketplaceListingDetailPage extends StatelessWidget {
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
-            const SizedBox(height: 4),
-
-            // Description content
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                data['description'] ?? 'No description provided.',
-                style: const TextStyle(fontSize: 14, color: Colors.black87),
-              ),
+              child: Text(data['description'] ?? 'No description provided.'),
             ),
-
             const SizedBox(height: 16),
 
             if (data['sellerId'] != currentUserId) ...[
@@ -179,10 +178,14 @@ class MarketplaceListingDetailPage extends StatelessWidget {
                 ),
                 child: ListTile(
                   leading: CircleAvatar(
-                    // TODO: replace with real seller avatar
-                    backgroundImage: const NetworkImage(
-                      'https://cdn-icons-png.flaticon.com/512/149/149071.png',
-                    ),
+                    backgroundImage:
+                        data['sellerProfileImage'] != null &&
+                            data['sellerProfileImage'].isNotEmpty
+                        ? MemoryImage(base64Decode(data['sellerProfileImage']))
+                        : const NetworkImage(
+                                'https://cdn-icons-png.flaticon.com/512/149/149071.png',
+                              )
+                              as ImageProvider, // fallback if no image
                   ),
                   title: Text(data['sellerName']),
                   subtitle: const Text('View Profile'),
@@ -195,6 +198,36 @@ class MarketplaceListingDetailPage extends StatelessWidget {
 
               const SizedBox(height: 24),
             ],
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  if (data['status'] !=
+                      'ACTIVE') // only show for SOLD/WITHDRAWN
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: data['status'] == 'SOLD'
+                            ? Colors.red[400]
+                            : Colors.orange[400],
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        data['status'],
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
