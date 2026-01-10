@@ -66,15 +66,54 @@ class MarketplaceListingDetailPage extends StatelessWidget {
 
             const SizedBox(height: 16),
 
-            // Title
+            // Title + Buy Now button
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                data['title'],
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Title
+                  Expanded(
+                    child: Text(
+                      data['title'],
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+
+                  if (data['sellerId'] != currentUserId) ...[
+                    const SizedBox(width: 12),
+
+                    ElevatedButton(
+                      onPressed: () {
+                        // placeholder action
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Buy Now Clicked')),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF155DFD),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        elevation: 3,
+                      ),
+                      child: const Text(
+                        'Buy Now',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
 
@@ -139,7 +178,7 @@ class MarketplaceListingDetailPage extends StatelessWidget {
                       'https://cdn-icons-png.flaticon.com/512/149/149071.png',
                     ),
                   ),
-                  title: Text(data['sellerId']),
+                  title: Text(data['sellerName']),
                   subtitle: const Text('View Profile'),
                   trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                   onTap: () {
