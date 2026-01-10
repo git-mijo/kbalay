@@ -1,18 +1,25 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ResidentProfileSettingsPage extends StatefulWidget {
   const ResidentProfileSettingsPage({super.key});
 
   @override
-  State<ResidentProfileSettingsPage> createState() => _ResidentProfileSettingsPageState();
+  State<ResidentProfileSettingsPage> createState() =>
+      _ResidentProfileSettingsPageState();
 }
 
-class _ResidentProfileSettingsPageState extends State<ResidentProfileSettingsPage> {
+class _ResidentProfileSettingsPageState
+    extends State<ResidentProfileSettingsPage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final ImagePicker _picker = ImagePicker();
 
   final _formKey = GlobalKey<FormState>();
 
@@ -21,16 +28,26 @@ class _ResidentProfileSettingsPageState extends State<ResidentProfileSettingsPag
   final TextEditingController _middleNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _suffixController = TextEditingController();
+
+  // Address controllers
+  final TextEditingController _phaseController = TextEditingController();
+  final TextEditingController _blockController = TextEditingController();
+  final TextEditingController _lotNumberController = TextEditingController();
   final TextEditingController _fullAddressController = TextEditingController();
 
   // Password controllers
   final TextEditingController _oldPasswordController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
 
   bool _loading = true;
   bool _updating = false;
   String? _docId;
+  String? _profileImageBase64;
+
+  bool _isAvailable = false;
+  bool _isRental = false;
 
   @override
   void initState() {
@@ -51,16 +68,51 @@ class _ResidentProfileSettingsPageState extends State<ResidentProfileSettingsPag
     if (snapshot.docs.isNotEmpty) {
       final data = snapshot.docs.first.data();
       _docId = snapshot.docs.first.id;
+
       _firstNameController.text = data['firstName'] ?? '';
       _middleNameController.text = data['middleName'] ?? '';
       _lastNameController.text = data['lastName'] ?? '';
       _suffixController.text = data['suffix'] ?? '';
+
+      _phaseController.text = data['phase'] ?? '';
+      _blockController.text = data['block'] ?? '';
+      _lotNumberController.text = data['lotNumber'] ?? '';
       _fullAddressController.text = data['fullAddress'] ?? '';
+
+      _isAvailable = data['isAvailable'] ?? false;
+      _isRental = data['isRental'] ?? false;
+
+      _profileImageBase64 = data['profileImageBase64'];
     }
 
-    setState(() {
-      _loading = false;
-    });
+    setState(() => _loading = false);
+  }
+
+  Future<void> _pickAndSaveProfileImage() async {
+    if (_docId == null) return;
+
+    final pickedFile = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 40,
+    );
+
+    if (pickedFile == null) return;
+
+    final bytes = await pickedFile.readAsBytes();
+
+    if (bytes.lengthInBytes > 500 * 1024) {
+      Fluttertoast.showToast(msg: 'Image too large');
+      return;
+    }
+
+    final base64Image = base64Encode(bytes);
+
+    await _db
+        .collection('master_residents')
+        .doc(_docId)
+        .update({'profileImageBase64': base64Image});
+
+    setState(() => _profileImageBase64 = base64Image);
   }
 
   Future<void> _updateProfile() async {
@@ -72,18 +124,19 @@ class _ResidentProfileSettingsPageState extends State<ResidentProfileSettingsPag
       final user = _auth.currentUser;
       if (user == null) throw Exception('User not logged in');
 
-      // --- UPDATE FIRESTORE PROFILE INFO ---
-      if (_docId != null) {
-        await _db.collection('master_residents').doc(_docId).update({
-          'firstName': _firstNameController.text.trim(),
-          'middleName': _middleNameController.text.trim(),
-          'lastName': _lastNameController.text.trim(),
-          'suffix': _suffixController.text.trim(),
-          'fullAddress': _fullAddressController.text.trim(),
-        });
-      }
+      await _db.collection('master_residents').doc(_docId).update({
+        'firstName': _firstNameController.text.trim(),
+        'middleName': _middleNameController.text.trim(),
+        'lastName': _lastNameController.text.trim(),
+        'suffix': _suffixController.text.trim(),
+        'phase': _phaseController.text.trim(),
+        'block': _blockController.text.trim(),
+        'lotNumber': _lotNumberController.text.trim(),
+        'fullAddress': _fullAddressController.text.trim(),
+        'isAvailable': _isAvailable,
+        'isRental': _isRental,
+      });
 
-      // --- UPDATE PASSWORD IF ENTERED ---
       if (_passwordController.text.isNotEmpty) {
         if (_passwordController.text != _confirmPasswordController.text) {
           Fluttertoast.showToast(msg: "New passwords do not match");
@@ -91,27 +144,17 @@ class _ResidentProfileSettingsPageState extends State<ResidentProfileSettingsPag
           return;
         }
 
-        if (_oldPasswordController.text.isEmpty) {
-          Fluttertoast.showToast(msg: "Please enter your current password");
-          setState(() => _updating = false);
-          return;
-        }
-
-        // Re-authenticate user with old password
         final cred = EmailAuthProvider.credential(
-            email: user.email!, password: _oldPasswordController.text.trim());
-        try {
-          await user.reauthenticateWithCredential(cred);
-          await user.updatePassword(_passwordController.text.trim());
-        } on FirebaseAuthException catch (e) {
-          Fluttertoast.showToast(msg: "Current password is incorrect: ${e.message}");
-          setState(() => _updating = false);
-          return;
-        }
+          email: user.email!,
+          password: _oldPasswordController.text.trim(),
+        );
+
+        await user.reauthenticateWithCredential(cred);
+        await user.updatePassword(_passwordController.text.trim());
       }
 
       Fluttertoast.showToast(msg: 'Profile updated successfully');
-      Navigator.pop(context); // Go back to profile page
+      Navigator.pop(context);
     } catch (e) {
       Fluttertoast.showToast(msg: 'Failed to update profile: $e');
     }
@@ -127,6 +170,10 @@ class _ResidentProfileSettingsPageState extends State<ResidentProfileSettingsPag
       );
     }
 
+    Uint8List? imageBytes = _profileImageBase64 != null
+        ? base64Decode(_profileImageBase64!)
+        : null;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile Settings'),
@@ -139,31 +186,101 @@ class _ResidentProfileSettingsPageState extends State<ResidentProfileSettingsPag
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ===== PROFILE INFO SECTION =====
-              const Text(
-                'Profile Information',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              Center(
+                child: GestureDetector(
+                  onTap: _pickAndSaveProfileImage,
+                  child: Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 64,
+                        backgroundColor: Colors.blue.shade100,
+                        backgroundImage:
+                            imageBytes != null ? MemoryImage(imageBytes) : null,
+                        child: imageBytes == null
+                            ? const Icon(Icons.person,
+                                size: 48, color: Colors.white)
+                            : null,
+                      ),
+                      Positioned(
+                        bottom: 2,
+                        right: 2,
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                  color: Colors.black26, blurRadius: 4),
+                            ],
+                          ),
+                          child: const Icon(Icons.camera_alt,
+                              size: 16, color: Colors.blue),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              const SizedBox(height: 12),
-              _buildTextField('First Name', _firstNameController),
+
+              const SizedBox(height: 24),
+
+              const Text('Profile Information',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              _buildTextField('First Name', _firstNameController, required: true),
               _buildTextField('Middle Name', _middleNameController),
-              _buildTextField('Last Name', _lastNameController),
+              _buildTextField('Last Name', _lastNameController, required: true),
               _buildTextField('Suffix', _suffixController),
-              _buildTextField('Full Address', _fullAddressController, maxLines: 2),
 
-              const SizedBox(height: 20),
               const Divider(),
-              const SizedBox(height: 20),
 
-              // ===== CHANGE PASSWORD SECTION =====
-              const Text(
-                'Change Password',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              const Text('Address Information',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Row(
+                children: [
+                  Expanded(
+                      child: _buildTextField('Phase', _phaseController,
+                          required: true)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                      child: _buildTextField('Block', _blockController,
+                          required: true)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                      child: _buildTextField('Lot', _lotNumberController,
+                          required: true)),
+                ],
               ),
-              const SizedBox(height: 12),
-              _buildTextField('Current Password', _oldPasswordController, obscureText: true),
-              _buildTextField('New Password', _passwordController, obscureText: true),
-              _buildTextField('Confirm New Password', _confirmPasswordController, obscureText: true),
+              _buildTextField(
+                'Full Address',
+                _fullAddressController,
+                required: true,
+                maxLines: 2,
+                helperText: 'Street, House #, etc.',
+              ),
+
+              SwitchListTile(
+                title: const Text('Unit is Available (For Rent/Sale)'),
+                value: _isAvailable,
+                onChanged: (v) => setState(() => _isAvailable = v),
+              ),
+              SwitchListTile(
+                title: const Text('I am a Tenant'),
+                value: _isRental,
+                onChanged: (v) => setState(() => _isRental = v),
+              ),
+
+              const Divider(),
+
+              const Text('Change Password',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              _buildTextField('Current Password', _oldPasswordController,
+                  obscureText: true),
+              _buildTextField('New Password', _passwordController,
+                  obscureText: true),
+              _buildTextField(
+                  'Confirm New Password', _confirmPasswordController,
+                  obscureText: true),
 
               const SizedBox(height: 30),
               _updating
@@ -172,11 +289,7 @@ class _ResidentProfileSettingsPageState extends State<ResidentProfileSettingsPag
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: _updateProfile,
-                        style: ElevatedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(50),
-                          backgroundColor: const Color(0xFF1E5EFF),
-                        ),
-                        child: const Text('Save Changes', style: TextStyle(fontSize: 16)),
+                        child: const Text('Save Changes'),
                       ),
                     ),
             ],
@@ -186,8 +299,14 @@ class _ResidentProfileSettingsPageState extends State<ResidentProfileSettingsPag
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller,
-      {bool obscureText = false, int maxLines = 1}) {
+  Widget _buildTextField(
+    String label,
+    TextEditingController controller, {
+    bool required = false,
+    bool obscureText = false,
+    int maxLines = 1,
+    String? helperText,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: TextFormField(
@@ -195,20 +314,14 @@ class _ResidentProfileSettingsPageState extends State<ResidentProfileSettingsPag
         obscureText: obscureText,
         maxLines: maxLines,
         validator: (value) {
-          // Only require old password if new password is entered
-          if (label == 'Current Password' && _passwordController.text.isNotEmpty) {
-            if (value == null || value.isEmpty) return 'Current password required';
+          if (required && (value == null || value.isEmpty)) {
+            return '$label is required';
           }
-
-          if ((label != 'Suffix' && label != 'Middle Name' && !label.contains('Password')) &&
-              (value == null || value.isEmpty)) {
-            return '$label cannot be empty';
-          }
-
           return null;
         },
         decoration: InputDecoration(
           labelText: label,
+          helperText: helperText,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         ),
       ),
