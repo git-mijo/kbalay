@@ -106,7 +106,7 @@ class MarketplaceListingsFeed extends StatelessWidget {
                       'status': data['status'],
                       'timePosted': (data['timePosted'] as Timestamp?)
                           ?.toDate(),
-                      'photosRef': List<String>.from(data['photos'] ?? []),
+                      'photosBase64': List<String>.from(data['photos'] ?? []),
                     };
                   })
                   .where((l) {
