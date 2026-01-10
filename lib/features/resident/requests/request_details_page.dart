@@ -12,7 +12,11 @@ class RequestDetailsPage extends StatefulWidget {
   final bool isMyRequest;
   final String requestId; // pass this from PostCard
 
-  const RequestDetailsPage({super.key, required this.requestId, required this.isMyRequest});
+  const RequestDetailsPage({
+    super.key,
+    required this.requestId,
+    required this.isMyRequest,
+  });
 
   @override
   State<RequestDetailsPage> createState() => _RequestDetailsPageState();
@@ -31,38 +35,56 @@ class _RequestDetailsPageState extends State<RequestDetailsPage> {
   }
 
   Future<void> _loadRequestData() async {
-    // 1️⃣ Fetch request document
-    final doc = await FirebaseFirestore.instance.collection('requests').doc(widget.requestId).get();
-    if (!doc.exists) return;
-    final data = doc.data()!;
+    try {
+      // 1️⃣ Fetch request document
+      final doc = await FirebaseFirestore.instance
+          .collection('requests')
+          .doc(widget.requestId)
+          .get();
+      if (!doc.exists) return;
 
-    final userRequester = await FirebaseFirestore.instance.collection('master_residents').where('userId', isEqualTo: data['requesterId']).limit(1).get();
-    if (userRequester.docs.isNotEmpty) {
-      final requesterDoc = userRequester.docs.first;
-      final requesterName = requesterDoc['firstName'] ?? 'Unknown';
-      final requesterLastName = requesterDoc['lastName'] ?? '';
-      String fullName = "$requesterName $requesterLastName";
-      data['requesterName'] = fullName;
-    }
+      final data = doc.data()!;
 
-    // 2️⃣ Fetch category name from request_type
-    final snapshot = await FirebaseFirestore.instance.collection('request_type').get();
-    final Map<String, String> typeMap = {};
-    for (var doc in snapshot.docs) {
-      final dataRequesttype = doc.data();
-      typeMap[dataRequesttype['rid']] = dataRequesttype['name'] ?? 'Unknown';
-    }
+      // 2️⃣ Fetch requester info
+      if (data['requesterId'] != null) {
+        final userSnap = await FirebaseFirestore.instance
+            .collection('master_residents')
+            .where('userId', isEqualTo: data['requesterId'])
+            .limit(1)
+            .get();
 
-    // Look up the category name using the request's category ID
-    String catName = "Unknown";
-    if (data['category'] != null && typeMap.containsKey(data['category'])) {
-      catName = typeMap[data['category']]!;
+        if (userSnap.docs.isNotEmpty) {
+          final requesterDoc = userSnap.docs.first;
+          final firstName = requesterDoc['firstName'] ?? '';
+          final lastName = requesterDoc['lastName'] ?? '';
+          data['requesterName'] = "$firstName $lastName".trim();
+        } else {
+          data['requesterName'] = "Unknown";
+        }
+      } else {
+        data['requesterName'] = "Unknown";
+      }
+
+      // 3️⃣ Fetch category mapping
+      final catSnap =
+          await FirebaseFirestore.instance.collection('request_type').get();
+      final Map<String, String> typeMap = {};
+      for (var doc in catSnap.docs) {
+        final catData = doc.data();
+        typeMap[catData['rid']] = catData['name'] ?? 'Unknown';
+      }
+
+      final catName = (data['category'] != null && typeMap.containsKey(data['category']))
+          ? typeMap[data['category']]!
+          : "Unknown";
+
+      setState(() {
+        requestData = data;
+        categoryName = catName;
+      });
+    } catch (e) {
+      debugPrint("Error loading request data: $e");
     }
-    
-    setState(() {
-      requestData = data;
-      categoryName = catName;
-    });
   }
 
   List<Widget> _buildSections() {
@@ -87,6 +109,13 @@ class _RequestDetailsPageState extends State<RequestDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (requestData == null) {
+      // Show loading until data is ready
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       appBar: const RequestDetailsAppBar(),
       body: Column(
@@ -95,13 +124,18 @@ class _RequestDetailsPageState extends State<RequestDetailsPage> {
           RequestStatusBar(),
           RequestSectionTabs(
             selectedIndex: _selectedSectionIndex,
-            showChats: true,
+            showChats: widget.isMyRequest,
             onChanged: (i) => setState(() => _selectedSectionIndex = i),
           ),
           Expanded(child: _buildSections()[_selectedSectionIndex]),
         ],
       ),
-      bottomNavigationBar: widget.isMyRequest ? null : const OfferHelpButton(),
+      bottomNavigationBar: widget.isMyRequest || requestData == null
+          ? null
+          : OfferHelpButton(
+              requestId: widget.requestId,
+              requesterId: requestData!['requesterId'],
+            ),
     );
   }
 }
