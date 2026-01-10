@@ -3,8 +3,9 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
+import 'dart:convert';
 
 class CreateListingPage extends StatefulWidget {
   const CreateListingPage({super.key});
@@ -33,6 +34,16 @@ class _CreateListingPageState extends State<CreateListingPage> {
   void initState() {
     super.initState();
     _fetchCategories();
+  }
+
+  Future<Uint8List?> _getImageData(XFile file) async {
+    if (kIsWeb) {
+      // On web, read bytes directly
+      return await file.readAsBytes();
+    } else {
+      // On mobile/desktop, read from File
+      return await File(file.path).readAsBytes();
+    }
   }
 
   Future<void> _fetchCategories() async {
@@ -68,59 +79,31 @@ class _CreateListingPageState extends State<CreateListingPage> {
     }
   }
 
-  static const bool _debugOnly = false;
   Future<void> _submitListing() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // =====================
-    // DEBUG MODE (NO WRITE)
-    // =====================
-    if (_debugOnly) {
-      debugPrint('🧪 CREATE LISTING (DEBUG MODE)');
-      debugPrint('Title: ${_titleController.text}');
-      debugPrint('Price: ${_priceController.text}');
-      debugPrint('Category ID: $_selectedCategoryId');
-      debugPrint('Description: ${_descriptionController.text}');
-      debugPrint('Photos count: ${_photos.length}');
-      debugPrint('Photo paths: ${_photos.map((p) => p.path).toList()}');
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('DEBUG: Listing data logged to console')),
-      );
-      return;
-    }
-
-    // =====================
-    // REAL SUBMIT LOGIC
-    // =====================
     setState(() => _submitting = true);
 
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception('User not logged in');
 
-      // Upload photos to Firebase Storage
-      final List<String> photoUrls = [];
+      // ===== BASE64 IMAGE HANDLING (NO STORAGE) =====
+      final List<String> base64Photos = [];
 
       for (final file in _photos) {
-        final ref = FirebaseStorage.instance
-            .ref()
-            .child('marketplace_listings')
-            .child(user.uid)
-            .child('${DateTime.now().millisecondsSinceEpoch}_${file.name}');
-
-        await ref.putFile(File(file.path));
-        final url = await ref.getDownloadURL();
-        photoUrls.add(url);
+        final bytes = await file.readAsBytes();
+        final base64Image = base64Encode(bytes);
+        base64Photos.add(base64Image);
       }
 
-      // Create Firestore document
+      // ===== FIRESTORE WRITE =====
       await FirebaseFirestore.instance.collection('marketplace_listings').add({
         'title': _titleController.text.trim(),
         'price': double.parse(_priceController.text),
         'categoryId': _selectedCategoryId,
         'description': _descriptionController.text.trim(),
-        'photos': photoUrls,
+        'photos': base64Photos,
         'sellerId': user.uid,
         'status': 'ACTIVE',
         'createdAt': FieldValue.serverTimestamp(),
@@ -249,61 +232,81 @@ class _CreateListingPageState extends State<CreateListingPage> {
               const SizedBox(height: 16),
 
               // ===== PHOTOS =====
-              // const Text(
-              //   'Photos',
-              //   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              // ),
-              // const SizedBox(height: 8),
-              // Wrap(
-              //   spacing: 8,
-              //   runSpacing: 8,
-              //   children: [
-              //     ..._photos.map(
-              //       (file) => Stack(
-              //         children: [
-              //           Image.file(
-              //             File(file.path),
-              //             width: 80,
-              //             height: 80,
-              //             fit: BoxFit.cover,
-              //           ),
-              //           Positioned(
-              //             right: 0,
-              //             top: 0,
-              //             child: GestureDetector(
-              //               onTap: () {
-              //                 setState(() {
-              //                   _photos.remove(file);
-              //                 });
-              //               },
-              //               child: Container(
-              //                 color: Colors.black54,
-              //                 child: const Icon(
-              //                   Icons.close,
-              //                   size: 16,
-              //                   color: Colors.white,
-              //                 ),
-              //               ),
-              //             ),
-              //           ),
-              //         ],
-              //       ),
-              //     ),
-              //     GestureDetector(
-              //       onTap: _pickImages,
-              //       child: Container(
-              //         width: 80,
-              //         height: 80,
-              //         color: Colors.grey[200],
-              //         child: const Icon(
-              //           Icons.add_a_photo,
-              //           size: 30,
-              //           color: Colors.grey,
-              //         ),
-              //       ),
-              //     ),
-              //   ],
-              // ),
+              // ===== PHOTOS =====
+              const Text(
+                'Photos',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  ..._photos.map(
+                    (file) => FutureBuilder<Uint8List?>(
+                      future: _getImageData(file),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState != ConnectionState.done) {
+                          return Container(
+                            width: 80,
+                            height: 80,
+                            color: Colors.grey[300],
+                            child: const Center(
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          );
+                        }
+
+                        if (!snapshot.hasData) return const SizedBox();
+
+                        return Stack(
+                          children: [
+                            Image.memory(
+                              snapshot.data!,
+                              width: 80,
+                              height: 80,
+                              fit: BoxFit.cover,
+                            ),
+                            Positioned(
+                              right: 0,
+                              top: 0,
+                              child: GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _photos.remove(file);
+                                  });
+                                },
+                                child: Container(
+                                  color: Colors.black54,
+                                  child: const Icon(
+                                    Icons.close,
+                                    size: 16,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: _pickImages,
+                    child: Container(
+                      width: 80,
+                      height: 80,
+                      color: Colors.grey[200],
+                      child: const Icon(
+                        Icons.add_a_photo,
+                        size: 30,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
               const SizedBox(height: 30),
 
               // ===== SUBMIT BUTTON =====

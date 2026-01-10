@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 
 class MarketplaceListingDetailPage extends StatelessWidget {
   final Map<String, dynamic> data;
@@ -7,7 +8,7 @@ class MarketplaceListingDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final images = data['photosRef'] as List;
+    final List images = data['photosBase64'] ?? [];
     final isSold = data['status'] == 'SOLD' || data['status'] == 'WITHDRAWN';
     final currentUserId = 'xFjiZSViGdNzmzqsgU3oSuYWdBq2';
     return Scaffold(
@@ -15,7 +16,7 @@ class MarketplaceListingDetailPage extends StatelessWidget {
         toolbarHeight: 72,
         backgroundColor: const Color(0xFF155DFD),
         foregroundColor: const Color.fromARGB(255, 255, 255, 255),
-        automaticallyImplyLeading: true, // back button
+        automaticallyImplyLeading: true,
         titleSpacing: 0,
         title: const Padding(
           padding: EdgeInsets.symmetric(horizontal: 16),
@@ -35,14 +36,19 @@ class MarketplaceListingDetailPage extends StatelessWidget {
                 itemBuilder: (context, index) {
                   return Stack(
                     children: [
-                      Image.network(
-                        images.isNotEmpty
-                            ? images[index]
-                            : 'https://t4.ftcdn.net/jpg/06/57/37/01/360_F_657370150_pdNeG5pjI976ZasVbKN9VqH1rfoykdYU.jpg',
-                        width: double.infinity,
-                        height: double.infinity,
-                        fit: BoxFit.cover,
-                      ),
+                      images.isNotEmpty
+                          ? Image.memory(
+                              base64Decode(images[index]),
+                              width: double.infinity,
+                              height: double.infinity,
+                              fit: BoxFit.cover,
+                            )
+                          : Image.asset(
+                              'images/no-image-item.png',
+                              width: double.infinity,
+                              height: double.infinity,
+                              fit: BoxFit.cover,
+                            ),
                       if (isSold)
                         Positioned.fill(
                           child: Container(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import './marketplace_listing_detail_page.dart';
+import 'dart:convert';
 
 class MarketplaceCard extends StatelessWidget {
   final Map<String, dynamic> data;
@@ -7,9 +8,10 @@ class MarketplaceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl = (data['photosRef'] as List).isNotEmpty
-        ? data['photosRef'][0]
-        : 'https://t4.ftcdn.net/jpg/06/57/37/01/360_F_657370150_pdNeG5pjI976ZasVbKN9VqH1rfoykdYU.jpg';
+    final photos = data['photosBase64'] as List?;
+    final String? base64Image = (photos != null && photos.isNotEmpty)
+        ? photos.first
+        : null;
 
     final isSold = data['status'] == 'SOLD' || data['status'] == 'WITHDRAWN';
 
@@ -34,12 +36,19 @@ class MarketplaceCard extends StatelessWidget {
           children: [
             Stack(
               children: [
-                Image.network(
-                  imageUrl,
-                  width: double.infinity,
-                  height: 160,
-                  fit: BoxFit.cover,
-                ),
+                base64Image != null
+                    ? Image.memory(
+                        base64Decode(base64Image),
+                        width: double.infinity,
+                        height: 160,
+                        fit: BoxFit.cover,
+                      )
+                    : Image.asset(
+                        'images/no-image-item.png',
+                        width: double.infinity,
+                        height: 160,
+                        fit: BoxFit.cover,
+                      ),
 
                 if (isSold)
                   Positioned.fill(
