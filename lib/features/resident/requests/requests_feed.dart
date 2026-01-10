@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hoa/features/authentication/services/auth_service.dart';
-import '../home/post_card.dart';
+import 'request_card.dart';
 
 class ResidentRequestsFeed extends StatelessWidget {
   const ResidentRequestsFeed({super.key});

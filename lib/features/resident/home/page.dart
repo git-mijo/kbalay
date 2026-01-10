@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_hoa/features/resident/widgets/my_requests/my_requests_feed.dart';
-import 'package:flutter_hoa/features/resident/widgets/my_requests/my_requests_section_tabs.dart';
-import '../widgets/profile/profile_page.dart';
+import 'package:flutter_hoa/features/resident/my_requests/my_requests_feed.dart';
+import 'package:flutter_hoa/features/resident/my_requests/my_requests_section_tabs.dart';
+import '../profile/profile_page.dart';
 
-import '../widgets/home/resident_app_bar.dart';
-import '../widgets/home/resident_location_bar.dart';
-import '../widgets/home/resident_section_tabs.dart';
-import '../widgets/requests/requests_feed.dart';
-import '../widgets/home/resident_announcements_feed.dart';
+import 'resident_app_bar.dart';
+import 'resident_location_bar.dart';
+import 'resident_section_tabs.dart';
+import '../requests/requests_feed.dart';
+import 'resident_announcements_feed.dart';
 import '../widgets/resident_bottom_nav.dart';
-import '../widgets/marketplace/marketplace_app_bar.dart';
-import '../widgets/my_requests/my_requests_app_bar.dart';
-import '../widgets/profile/profile_app_bar.dart';
+import '../marketplace/marketplace_app_bar.dart';
+import '../my_requests/my_requests_app_bar.dart';
+import '../profile/profile_app_bar.dart';
 
 class ResidentPage extends StatefulWidget {
   const ResidentPage({super.key});

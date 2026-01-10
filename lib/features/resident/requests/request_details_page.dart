@@ -1,10 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_hoa/features/resident/widgets/requests/request_detail_chats.dart';
+import 'package:flutter_hoa/features/resident/requests/request_detail_chats.dart';
 import 'request_detail_body.dart';
 import 'request_detail_offers.dart';
 import 'request_section_tabs.dart';
-import 'offer_help_button.dart';
+import 'request_offer_button.dart';
 import 'request_status_bar.dart';
 import 'request_details_app_bar.dart';
 
@@ -12,7 +12,7 @@ class RequestDetailsPage extends StatefulWidget {
   final bool isMyRequest;
   final String requestId; // pass this from PostCard
 
-  const RequestDetailsPage({super.key, required this.requestId, this.isMyRequest = false});
+  const RequestDetailsPage({super.key, required this.requestId, required this.isMyRequest});
 
   @override
   State<RequestDetailsPage> createState() => _RequestDetailsPageState();
