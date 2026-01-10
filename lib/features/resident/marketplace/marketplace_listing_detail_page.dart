@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import './create_listing_page.dart';
+import './marketplace_detail_image_carousel.dart';
 import 'dart:convert';
 
 class MarketplaceListingDetailPage extends StatefulWidget {
@@ -25,7 +26,9 @@ class _MarketplaceListingDetailPageState
 
   @override
   Widget build(BuildContext context) {
-    final List images = data['photos'] ?? [];
+    final List<String> images =
+        (data['photos'] as List<dynamic>?)?.map((e) => e.toString()).toList() ??
+        [];
     final status = data['status'];
     final isOverlay = status == 'SOLD' || status == 'WITHDRAWN';
     final user = FirebaseAuth.instance.currentUser;
@@ -47,27 +50,7 @@ class _MarketplaceListingDetailPageState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Images
-            SizedBox(
-              height: MediaQuery.of(context).size.height * 0.5,
-              child: PageView.builder(
-                itemCount: images.isNotEmpty ? images.length : 1,
-                itemBuilder: (context, index) {
-                  return images.isNotEmpty
-                      ? Image.memory(
-                          base64Decode(images[index]),
-                          width: double.infinity,
-                          height: double.infinity,
-                          fit: BoxFit.cover,
-                        )
-                      : Image.asset(
-                          'images/no-image-item.png',
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: double.infinity,
-                        );
-                },
-              ),
-            ),
+            MarketplaceDetailImageCarousel(images: images),
 
             const SizedBox(height: 16),
 
