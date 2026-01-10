@@ -10,6 +10,9 @@ import '../requests/requests_feed.dart';
 import 'resident_announcements_feed.dart';
 import '../widgets/resident_bottom_nav.dart';
 import '../marketplace/marketplace_app_bar.dart';
+import '../my_requests/my_requests_app_bar.dart';
+import '../marketplace/marketplace_section_tabs.dart';
+import '../marketplace/marketplace_listings_feed.dart';
 import '../profile/profile_app_bar.dart';
 
 class ResidentPage extends StatefulWidget {
@@ -22,6 +25,8 @@ class ResidentPage extends StatefulWidget {
 class _ResidentPageState extends State<ResidentPage> {
   int _selectedBottomIndex = 0;
   int _selectedSectionIndex = 0;
+  int _selectedMarketplaceIndex = 0;
+  int _selectedMyRequestIndex = 0;
 
   Widget _buildPage(int index) {
     switch (index) {
@@ -43,18 +48,29 @@ class _ResidentPageState extends State<ResidentPage> {
           ],
         );
       case 1:
-        return const Center(child: Text('(Marketplace)'));
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            MarketplaceSectionTabs(
+              selectedIndex: _selectedMarketplaceIndex,
+              onChanged: (i) => setState(() => _selectedMarketplaceIndex = i),
+            ),
+            Expanded(
+              child: MarketplaceListingsFeed(
+                showCreateButton: _selectedMarketplaceIndex == 1,
+              ),
+            ),
+          ],
+        );
       case 2:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             MyRequestsSectionTabs(
-              selectedIndex: _selectedSectionIndex,
-              onChanged: (i) => setState(() => _selectedSectionIndex = i),
+              selectedIndex: _selectedMyRequestIndex,
+              onChanged: (i) => setState(() => _selectedMyRequestIndex = i),
             ),
-            Expanded(
-              child: MyRequestsFeed(),
-            ),
+            Expanded(child: MyRequestsFeed()),
           ],
         );
       case 3:
