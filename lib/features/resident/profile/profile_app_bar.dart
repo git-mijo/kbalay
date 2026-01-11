@@ -12,7 +12,7 @@ class ProfileAppBar extends StatelessWidget implements PreferredSizeWidget {
       titleSpacing: 0,
       title: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: const Text('Profile', style: TextStyle(color: Colors.white)),
+        child: const Text('My Profile', style: TextStyle(color: Colors.white)),
       ),
     );
   }

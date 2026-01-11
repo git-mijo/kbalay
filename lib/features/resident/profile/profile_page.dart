@@ -1,9 +1,13 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_hoa/features/authentication/services/auth_service.dart';
 import 'package:flutter_hoa/routes/app_routes.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -15,252 +19,333 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final ImagePicker _picker = ImagePicker();
 
-  Map<String, dynamic>? _userData;
-  bool _loading = true;
+  Future<void> _pickAndSaveBase64Image(String docId) async {
+    final pickedFile = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 40,
+    );
 
-  @override
-  void initState() {
-    super.initState();
-    _loadUserData();
-  }
+    if (pickedFile == null) return;
 
-  Future<void> _loadUserData() async {
-    final user = _auth.currentUser;
-    if (user == null) return;
+    final bytes = await pickedFile.readAsBytes();
+    final base64Image = base64Encode(bytes);
 
-    final snapshot = await _db
+    await _db
         .collection('master_residents')
-        .where('userId', isEqualTo: user.uid)
-        .limit(1)
-        .get();
-
-    if (snapshot.docs.isNotEmpty) {
-      setState(() {
-        _userData = snapshot.docs.first.data();
-        _loading = false;
-      });
-    } else {
-      setState(() {
-        _loading = false;
-      });
-    }
+        .doc(docId)
+        .update({'profileImageBase64': base64Image});
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
+    final user = _auth.currentUser;
+
+    if (user == null) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(child: Text("Not logged in")),
       );
     }
-
-    if (_userData == null) {
-      return const Scaffold(
-        body: Center(child: Text("User not found")),
-      );
-    }
-
-    final fullName =
-        "${_userData!['firstName'] ?? ''} ${_userData!['middleName'] ?? ''} ${_userData!['lastName'] ?? ''} ${_userData!['suffix'] ?? ''}"
-            .trim();
-
-    final email = _auth.currentUser?.email ?? '';
-    final location = _userData!['fullAddress'] ?? '';
-    final isAvailable = _userData!['isAvailable'] ?? false;
-    final isRental = _userData!['isRental'] ?? false;
 
     return Scaffold(
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // ===== HEADER =====
-            Container(
-              padding: const EdgeInsets.all(20),
-              color: const Color(0xFF1E5EFF),
-              child: Column(
-                children: [
-                  Row(
+      body: StreamBuilder<QuerySnapshot>(
+        stream: _db
+            .collection('master_residents')
+            .where('userId', isEqualTo: user.uid)
+            .limit(1)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text("User not found"));
+          }
+
+          final doc = snapshot.data!.docs.first;
+          final data = doc.data() as Map<String, dynamic>;
+
+          final fullName =
+              "${data['firstName'] ?? ''} ${data['middleName'] ?? ''} ${data['lastName'] ?? ''} ${data['suffix'] ?? ''}"
+                  .trim();
+
+          final email = user.email ?? '';
+
+          final phase = data['phase'];
+          final block = data['block'];
+          final lot = data['lotNumber'];
+          final fullAddress = data['fullAddress'];
+
+          final List<String> locationParts = [];
+          if ((phase ?? '').toString().isNotEmpty) {
+            locationParts.add('Phase $phase');
+          }
+          if ((block ?? '').toString().isNotEmpty) {
+            locationParts.add('Block $block');
+          }
+          if ((lot ?? '').toString().isNotEmpty) {
+            locationParts.add('Lot $lot');
+          }
+          if ((fullAddress ?? '').toString().isNotEmpty) {
+            locationParts.add(fullAddress);
+          }
+
+          final location = locationParts.join(', ');
+
+          final isAvailable = data['isAvailable'] ?? false;
+          final isRental = data['isRental'] ?? false;
+
+          final roleLabel = isRental ? 'Tenant' : 'Unit Owner';
+          final roleColor = isRental ? Colors.orange : Colors.green;
+
+          Uint8List? imageBytes = data['profileImageBase64'] != null
+              ? base64Decode(data['profileImageBase64'])
+              : null;
+
+          return SingleChildScrollView(
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  color: const Color(0xFF1E5EFF),
+                  child: Column(
                     children: [
-                      CircleAvatar(
-                        radius: 30,
-                        backgroundColor: Colors.lightBlueAccent,
-                        child: Text(
-                          fullName.isNotEmpty ? fullName[0] : '?',
-                          style: const TextStyle(
-                            fontSize: 28,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      Row(
                         children: [
-                          Text(
-                            fullName,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                          GestureDetector(
+                            onTap: () => _pickAndSaveBase64Image(doc.id),
+                            child: Stack(
+                              children: [
+                                CircleAvatar(
+                                  radius: 42,
+                                  backgroundColor: Colors.lightBlueAccent,
+                                  backgroundImage: imageBytes != null
+                                      ? MemoryImage(imageBytes)
+                                      : null,
+                                  child: imageBytes == null
+                                      ? Text(
+                                          fullName.isNotEmpty
+                                              ? fullName[0]
+                                              : '?',
+                                          style: const TextStyle(
+                                            fontSize: 36,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : null,
+                                ),
+                                Positioned(
+                                  bottom: 2,
+                                  right: 2,
+                                  child: Container(
+                                    decoration: const BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black26,
+                                          blurRadius: 4,
+                                        ),
+                                      ],
+                                    ),
+                                    padding: const EdgeInsets.all(6),
+                                    child: const Icon(
+                                      Icons.camera_alt,
+                                      size: 14,
+                                      color: Colors.blue,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            email,
-                            style: const TextStyle(color: Colors.white70),
+                          const SizedBox(width: 16),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                margin: const EdgeInsets.only(bottom: 4),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: roleColor,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  roleLabel,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                fullName,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                email,
+                                style:
+                                    const TextStyle(color: Colors.white70),
+                              ),
+                            ],
                           ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          mainAxisAlignment:
+                              MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  isAvailable
+                                      ? 'Available'
+                                      : 'Not Available',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const Text(
+                                  'Availability Status',
+                                  style: TextStyle(
+                                      color: Colors.white70),
+                                ),
+                              ],
+                            ),
+                            Icon(
+                              isRental
+                                  ? Icons.home_work
+                                  : Icons.home,
+                              color: Colors.white,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                _infoCard(
+                  child: Row(
+                    children: [
+                      const Icon(Icons.location_on, color: Colors.blue),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Location',
+                              style:
+                                  TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(location),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                _sectionTitle('Activity'),
+                _infoCard(
+                  child: Column(
+                    children: const [
+                      Row(
+                        mainAxisAlignment:
+                            MainAxisAlignment.spaceAround,
+                        children: [
+                          _ActivityItem('3', 'Requests Posted'),
+                          _ActivityItem('12', 'Times Helped'),
+                        ],
+                      ),
+                      SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment:
+                            MainAxisAlignment.spaceAround,
+                        children: [
+                          _ActivityItem('15', 'Offers Made'),
+                          _ActivityItem('98%', 'Response Rate'),
                         ],
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              isAvailable ? 'Available' : 'Not Available',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const Text(
-                              'Availability Status',
-                              style: TextStyle(color: Colors.white70),
-                            ),
-                          ],
-                        ),
-                        Icon(
-                          isRental ? Icons.home_work : Icons.home,
-                          color: Colors.white,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
+                ),
 
-            // ===== LOCATION =====
-            _infoCard(
-              child: Row(
-                children: [
-                  const Icon(Icons.location_on, color: Colors.blue),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Location',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(location),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // ===== ACTIVITY =====
-            _sectionTitle('Activity'),
-            _infoCard(
-              child: Column(
-                children: const [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _ActivityItem('3', 'Requests Posted'),
-                      _ActivityItem('12', 'Times Helped'),
+                _sectionTitle('Badges Earned'),
+                _infoCard(
+                  child: Row(
+                    mainAxisAlignment:
+                        MainAxisAlignment.spaceAround,
+                    children: const [
+                      _BadgeItem(Icons.handshake, 'Helper'),
+                      _BadgeItem(Icons.star, 'Trusted'),
+                      _BadgeItem(Icons.emoji_events, 'Top 10'),
                     ],
                   ),
-                  SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _ActivityItem('15', 'Offers Made'),
-                      _ActivityItem('98%', 'Response Rate'),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+                ),
 
-            // ===== BADGES =====
-            _sectionTitle('Badges Earned'),
-            _infoCard(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: const [
-                  _BadgeItem(Icons.handshake, 'Helper'),
-                  _BadgeItem(Icons.star, 'Trusted'),
-                  _BadgeItem(Icons.emoji_events, 'Top 10'),
-                ],
-              ),
-            ),
+                const SizedBox(height: 12),
+                _profileActionButton(
+                  icon: Icons.settings,
+                  label: 'Profile Settings',
+                  onTap: () async {
+                    await Navigator.pushNamed(
+                        context,
+                        AppRoutes.residentProfileSettings);
+                  },
+                ),
+                _profileActionButton(
+                  icon: Icons.help_outline,
+                  label: 'Help & Support',
+                  onTap: () {},
+                ),
+                _profileActionButton(
+                  icon: Icons.logout,
+                  label: 'Sign Out',
+                  isLogout: true,
+                  onTap: () async {
+                    await authService.value.signOut();
+                    Fluttertoast.showToast(
+                        msg: 'Logged out successfully');
+                    Navigator.pushReplacementNamed(
+                        context, AppRoutes.signIn);
+                  },
+                ),
 
-            // ===== PROFILE ACTION BUTTONS =====
-            const SizedBox(height: 12),
-            _profileActionButton(
-              icon: Icons.settings,
-              label: 'User Settings',
-              onTap: () {
-                Navigator.pushNamed(context, AppRoutes.residentProfileSettings);
-                // TODO: Navigate to Settings page
-              },
+                const SizedBox(height: 80),
+              ],
             ),
-            _profileActionButton(
-              icon: Icons.help_outline,
-              label: 'Help & Support',
-              onTap: () {
-                // TODO: Navigate to Help & Support page
-              },
-            ),
-            _profileActionButton(
-              icon: Icons.logout,
-              label: 'Sign Out',
-              isLogout: true,
-              onTap: () async {
-                try {
-                  await authService.value.signOut();
-                  Fluttertoast.showToast(
-                    msg: 'Logged out successfully',
-                    toastLength: Toast.LENGTH_SHORT,
-                    gravity: ToastGravity.BOTTOM,
-                  );
-                  Navigator.pushReplacementNamed(context, AppRoutes.signIn);
-                } catch (e) {
-                  Fluttertoast.showToast(
-                    msg: 'Failed to log out: $e',
-                    toastLength: Toast.LENGTH_LONG,
-                    gravity: ToastGravity.BOTTOM,
-                  );
-                }
-              },
-            ),
-            const SizedBox(height: 80),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 }
 
-/* ===== SMALL REUSABLE WIDGETS ===== */
 Widget _infoCard({required Widget child}) {
   return Container(
     margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -283,10 +368,8 @@ Widget _sectionTitle(String title) {
       alignment: Alignment.centerLeft,
       child: Text(
         title,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-        ),
+        style:
+            const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
       ),
     ),
   );
@@ -302,15 +385,12 @@ class _ActivityItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        Text(value,
+            style: const TextStyle(
+                fontSize: 20, fontWeight: FontWeight.bold)),
         const SizedBox(height: 4),
-        Text(label, style: const TextStyle(color: Colors.grey)),
+        Text(label,
+            style: const TextStyle(color: Colors.grey)),
       ],
     );
   }
@@ -347,7 +427,8 @@ Widget _profileActionButton({
     onTap: onTap,
     child: Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding:
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -357,17 +438,16 @@ Widget _profileActionButton({
       ),
       child: Row(
         children: [
-          Icon(
-            icon,
-            color: isLogout ? Colors.red : Colors.black87,
-          ),
+          Icon(icon,
+              color: isLogout ? Colors.red : Colors.black87),
           const SizedBox(width: 12),
           Text(
             label,
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w500,
-              color: isLogout ? Colors.red : Colors.black87,
+              color:
+                  isLogout ? Colors.red : Colors.black87,
             ),
           ),
         ],
