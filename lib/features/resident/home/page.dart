@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hoa/features/resident/my_requests/my_requests_feed.dart';
+import 'package:flutter_hoa/features/resident/my_requests/my_requests_feed_completed.dart';
 import 'package:flutter_hoa/features/resident/my_requests/my_requests_section_tabs.dart';
 import '../profile/profile_page.dart';
 
@@ -71,7 +72,11 @@ class _ResidentPageState extends State<ResidentPage> {
               selectedIndex: _selectedMyRequestIndex,
               onChanged: (i) => setState(() => _selectedMyRequestIndex = i),
             ),
-            Expanded(child: MyRequestsFeed()),
+            Expanded(
+              child:  _selectedMyRequestIndex == 0
+                ? MyRequestsFeed()
+                : MyRequestsFeedCompleted(),
+              ),
           ],
         );
       case 3:

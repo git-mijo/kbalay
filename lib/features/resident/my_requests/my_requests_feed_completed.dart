@@ -1,10 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hoa/features/authentication/services/auth_service.dart';
-import 'request_card.dart';
+import 'package:flutter_hoa/features/resident/requests/request_card.dart';
 
-class ResidentRequestsFeed extends StatelessWidget {
-  const ResidentRequestsFeed({super.key});
+class MyRequestsFeedCompleted extends StatelessWidget {
+  const MyRequestsFeedCompleted({super.key});
   
   Future<Map<String, String>> _fetchRequestTypes() async {
     // Fetch all request types once
@@ -28,8 +28,6 @@ class ResidentRequestsFeed extends StatelessWidget {
     return userMap;
   }
 
-  
-
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<Map<String, String>>>(
@@ -50,9 +48,9 @@ class ResidentRequestsFeed extends StatelessWidget {
 
         return StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
-              .collection('requests')
-              .orderBy('timePosted', descending: true)
-              .snapshots(),
+            .collection('requests')
+            .orderBy('timePosted', descending: true)
+            .snapshots(),
           builder: (context, requestSnapshot) {
             if (requestSnapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
@@ -65,9 +63,10 @@ class ResidentRequestsFeed extends StatelessWidget {
             final user = AuthService().currentUser;
             final currentUserId = user!.uid;
 
-            final filteredRequests = requests
-                .where((r) => (r.data() as Map<String, dynamic>)['requesterId'] != currentUserId)
-                .toList();
+            final filteredRequests = requests.where((r) {
+              final data = r.data() as Map<String, dynamic>;
+              return data['requesterId'] == currentUserId && data['status'] == 'Completed';
+            }).toList();
 
             return ListView.builder(
               padding: const EdgeInsets.all(16),

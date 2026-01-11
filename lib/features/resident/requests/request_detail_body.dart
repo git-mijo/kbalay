@@ -166,7 +166,7 @@ class RequestDetailBody extends StatelessWidget {
             const SizedBox(height: 16),
 
             // Action Buttons for owner's request
-            if (isMyRequest) ...[
+            if (isMyRequest && status != 'Completed') ...[
               Row(
                 children: [
                   Expanded(

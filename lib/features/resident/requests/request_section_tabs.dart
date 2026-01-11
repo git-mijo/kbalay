@@ -14,7 +14,7 @@ class RequestSectionTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final items = <String>['Details', 'Offers (0)', if (showChats) 'Chat'];
+    final items = <String>['Details', 'Offers', if (showChats) 'Chat'];
 
     return Container(
       height: 52,
