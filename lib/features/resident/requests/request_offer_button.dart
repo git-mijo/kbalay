@@ -22,17 +22,17 @@ class OfferHelpButton extends StatefulWidget {
 class _OfferHelpButtonState extends State<OfferHelpButton> {
   bool _hovered = false;
   bool _loading = true;
-  bool _offerSent = false;
+  String? _offerStatus; // null = no offer, otherwise pending/Approved/Denied
 
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   @override
   void initState() {
     super.initState();
-    _checkOfferStatus();
+    _fetchOfferStatus();
   }
 
-  Future<void> _checkOfferStatus() async {
+  Future<void> _fetchOfferStatus() async {
     final userId = AuthService().currentUser!.uid;
     final offersQuery = await _db
         .collection('requests')
@@ -43,7 +43,11 @@ class _OfferHelpButtonState extends State<OfferHelpButton> {
         .get();
 
     setState(() {
-      _offerSent = offersQuery.docs.isNotEmpty;
+      if (offersQuery.docs.isNotEmpty) {
+        _offerStatus = offersQuery.docs.first['offerStatus'] as String?;
+      } else {
+        _offerStatus = null;
+      }
       _loading = false;
     });
   }
@@ -54,13 +58,13 @@ class _OfferHelpButtonState extends State<OfferHelpButton> {
     final userId = AuthService().currentUser!.uid;
     final offersRef = _db.collection('requests').doc(widget.requestId).collection('offers');
 
-    if (_offerSent) {
+    if (_offerStatus != null) {
       // Cancel the offer
       final existingQuery = await offersRef.where('offerUserId', isEqualTo: userId).limit(1).get();
       if (existingQuery.docs.isNotEmpty) {
         await offersRef.doc(existingQuery.docs.first.id).delete();
       }
-      _offerSent = false;
+      _offerStatus = null;
     } else {
       // Send a new offer
       final newDoc = offersRef.doc();
@@ -70,7 +74,7 @@ class _OfferHelpButtonState extends State<OfferHelpButton> {
         'offerUserId': userId,
         'timestamp': FieldValue.serverTimestamp(),
       });
-      _offerSent = true;
+      _offerStatus = 'pending';
     }
 
     setState(() => _loading = false);
@@ -89,6 +93,28 @@ class _OfferHelpButtonState extends State<OfferHelpButton> {
       );
     }
 
+    // Determine button color based on status
+    Color buttonColor;
+    String buttonText;
+
+    switch (_offerStatus) {
+      case 'Approved':
+        buttonColor = Colors.green;
+        buttonText = 'Approved! Chat with Requester';
+        break;
+      case 'Denied':
+        buttonColor = Colors.red;
+        buttonText = 'Offer Denied';
+        break;
+      case 'pending':
+        buttonColor = const Color.fromARGB(255, 243, 149, 26); // orange
+        buttonText = 'Offer Pending. Continue to negotiate.';
+        break;
+      default:
+        buttonColor = _hovered ? hoverColor : baseColor;
+        buttonText = 'Offer to Help';
+    }
+
     return Container(
       decoration: const BoxDecoration(
         border: Border(top: BorderSide(color: Colors.grey, width: 0.5)),
@@ -104,6 +130,11 @@ class _OfferHelpButtonState extends State<OfferHelpButton> {
           width: double.infinity,
           child: ElevatedButton(
             onPressed: () {
+              if (_offerStatus == 'Denied') {
+                // Do nothing or show a message
+                return;
+              }
+
               if (widget.onPressed != null) {
                 widget.onPressed!();
               } else {
@@ -119,14 +150,14 @@ class _OfferHelpButtonState extends State<OfferHelpButton> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: _offerSent ? const Color.fromARGB(255, 243, 149, 26) : (_hovered ? hoverColor : baseColor),
+              backgroundColor: buttonColor,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
             child: Text(
-              _offerSent ? 'Offer already sent. Check chat.' : 'Offer to Help',
+              buttonText,
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
           ),

@@ -124,7 +124,7 @@ class _RequestDetailsPageState extends State<RequestDetailsPage> {
               Expanded(child: sections[_selectedSectionIndex]),
             ],
           ),
-          bottomNavigationBar: widget.isMyRequest || data == null
+          bottomNavigationBar: widget.isMyRequest || data.isEmpty
               ? null
               : OfferHelpButton(
                   requestId: widget.requestId,

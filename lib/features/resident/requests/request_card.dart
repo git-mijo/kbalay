@@ -6,7 +6,7 @@ import 'request_details_page.dart';
 class PostCard extends StatefulWidget {
   final String requestId;
   final String title;
-  final String categoryName; // already resolved
+  final String categoryName;
   final String requesterName;
   final int helpersNeeded;
   final int helpersAccepted;
@@ -35,18 +35,19 @@ class PostCard extends StatefulWidget {
 
 class _PostCardState extends State<PostCard> {
   bool _hovered = false;
-  bool _offerSent = false;
   bool _loadingOfferStatus = true;
+  String? _myOfferStatus; // pending, Approved, Denied, or null
 
   @override
   void initState() {
     super.initState();
-    _checkIfOfferSent();
+    _checkMyOfferStatus();
   }
 
-  Future<void> _checkIfOfferSent() async {
+  Future<void> _checkMyOfferStatus() async {
     final userId = AuthService().currentUser!.uid;
-    final doc = await FirebaseFirestore.instance
+
+    final query = await FirebaseFirestore.instance
         .collection('requests')
         .doc(widget.requestId)
         .collection('offers')
@@ -54,12 +55,16 @@ class _PostCardState extends State<PostCard> {
         .limit(1)
         .get();
 
-    if (mounted) {
-      setState(() {
-        _offerSent = doc.docs.isNotEmpty;
-        _loadingOfferStatus = false;
-      });
-    }
+    if (!mounted) return;
+
+    setState(() {
+      if (query.docs.isNotEmpty) {
+        _myOfferStatus = query.docs.first.data()['offerStatus'] ?? 'pending';
+      } else {
+        _myOfferStatus = null;
+      }
+      _loadingOfferStatus = false;
+    });
   }
 
   String get timeAgo {
@@ -72,6 +77,33 @@ class _PostCardState extends State<PostCard> {
 
   @override
   Widget build(BuildContext context) {
+    // determine button properties based on offer status
+    Color buttonColor = const Color(0xFF155DFD);
+    String buttonText = "Offer help";
+    bool buttonEnabled = true;
+
+    switch (_myOfferStatus) {
+      case 'Approved':
+        buttonColor = Colors.green;
+        buttonText = "Offer approved!";
+        buttonEnabled = false;
+        break;
+      case 'Denied':
+        buttonColor = Colors.redAccent;
+        buttonText = "Offer denied";
+        buttonEnabled = false;
+        break;
+      case 'pending':
+        buttonColor = Colors.orangeAccent;
+        buttonText = "Pending offer";
+        buttonEnabled = false; // cannot send again
+        break;
+      default:
+        buttonColor = const Color(0xFF155DFD);
+        buttonText = "Offer help";
+        buttonEnabled = true;
+    }
+
     return InkWell(
       onTap: () {
         Navigator.push(
@@ -173,37 +205,32 @@ class _PostCardState extends State<PostCard> {
                     ),
                     if (widget.isMyRequest != true)
                       _loadingOfferStatus
-                        ? const SizedBox(
-                            height: 36,
-                            width: 36,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : ElevatedButton(
-                            onPressed: _offerSent ? null : () {
-                              // navigate to request details or call offer function
-                            },
-                            style: ButtonStyle(
-                              backgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
-                                if (_offerSent) return Colors.yellow.shade800;
-                                if (states.contains(WidgetState.hovered)) return const Color(0xFF0F4FE0);
-                                return const Color(0xFF155DFD);
-                              }),
-                              foregroundColor: WidgetStateProperty.all(Colors.white),
-                              elevation: WidgetStateProperty.resolveWith<double>(
-                                (states) => states.contains(WidgetState.hovered) ? 2 : 0,
+                          ? const SizedBox(
+                              height: 36,
+                              width: 36,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : ElevatedButton(
+                              onPressed: buttonEnabled
+                                  ? () {
+                                      // TODO: call offer help function here
+                                    }
+                                  : null,
+                              style: ButtonStyle(
+                                backgroundColor: MaterialStateProperty.all(buttonColor),
+                                foregroundColor: MaterialStateProperty.all(Colors.white),
+                                padding: MaterialStateProperty.all(
+                                  const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                                ),
+                                shape: MaterialStateProperty.all(
+                                  RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
                               ),
-                              padding: WidgetStateProperty.all(
-                                const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                              child: Text(
+                                buttonText,
+                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w100),
                               ),
-                              shape: WidgetStateProperty.all(
-                                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                              ),
-                            ),
-                            child: Text(
-                              _offerSent ? "Offer sent" : "Offer help",
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w100),
-                            ),
-                          )
+                            )
                     else
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -220,7 +247,6 @@ class _PostCardState extends State<PostCard> {
                           ),
                         ),
                       )
-
                   ],
                 ),
               ],

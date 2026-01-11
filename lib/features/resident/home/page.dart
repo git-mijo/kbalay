@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hoa/features/resident/dashboard/page.dart';
 import 'package:flutter_hoa/features/resident/my_requests/my_requests_feed.dart';
 import 'package:flutter_hoa/features/resident/my_requests/my_requests_feed_completed.dart';
 import 'package:flutter_hoa/features/resident/my_requests/my_requests_section_tabs.dart';
@@ -80,7 +81,7 @@ class _ResidentPageState extends State<ResidentPage> {
           ],
         );
       case 3:
-        return const ProfilePage();
+        return const UserDashboardPage();
       default:
         return const SizedBox.shrink();
     }

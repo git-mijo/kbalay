@@ -331,8 +331,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     Navigator.pushNamed(context, AppRoutes.adminPayment);
                   },
                   onGenerateReport: () {
-                    HapticFeedback.lightImpact();
-                    // Navigator.pushNamed(context, AppRoutes.financialReports);
+                    Navigator.pushNamed(context, AppRoutes.adminReports);
                   },
                   onSendNotification: () {
                     Navigator.pushNamed(context, AppRoutes.adminAnnouncement);
