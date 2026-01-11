@@ -6,6 +6,7 @@ import './marketplace_detail_image_carousel.dart';
 import './marketplace_chat_page.dart';
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../profile/profile_page.dart';
 
 class MarketplaceListingDetailPage extends StatefulWidget {
   final Map<String, dynamic> data;
@@ -500,7 +501,12 @@ class _MarketplaceListingDetailPageState
                   subtitle: const Text('View Profile'),
                   trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                   onTap: () {
-                    // TODO: Navigate to seller profile
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ProfilePage(userId: data['sellerId']),
+                      ),
+                    );
                   },
                 ),
               ),
