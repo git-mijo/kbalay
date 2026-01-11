@@ -61,15 +61,9 @@ class _SplashScreenState extends State<SplashScreen>
   // Animation setup
   // ─────────────────────────────────────────────────────────────
   void _initAnimation() {
-    _controller = AnimationController(
-      vsync: this,
-      duration: _fadeDuration,
-    );
+    _controller = AnimationController(vsync: this, duration: _fadeDuration);
 
-    _fade = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeIn,
-    );
+    _fade = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
   }
 
   void _configureAnimationForAccessibility() {
@@ -196,7 +190,7 @@ class _SplashScreenState extends State<SplashScreen>
               // Logo
               FadeTransition(
                 opacity: _fade,
-                child: _Logo(theme: theme),
+                child: Flexible(flex: 3, child: _Logo(theme: theme)),
               ),
 
               const Spacer(flex: 1),
@@ -256,7 +250,6 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
   }
-
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -270,27 +263,47 @@ class _Logo extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = theme.colorScheme;
 
-    return Container(
-      width: 120.w,
-      height: 120.w,
-      decoration: BoxDecoration(
-        color: colors.onPrimary,
-        borderRadius: BorderRadius.circular(24.w),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final heightBasedSize = constraints.maxHeight * 0.35;
+        final widthBasedSize = constraints.maxWidth * 0.6;
+
+        const absoluteMax = 120.0;
+        const absoluteMin = 120.0;
+
+        final size = [
+          heightBasedSize,
+          widthBasedSize,
+          absoluteMax,
+        ].reduce((a, b) => a < b ? a : b).clamp(absoluteMin, absoluteMax);
+
+        return Center(
+          child: SizedBox(
+            width: size,
+            height: size,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: colors.onPrimary,
+                borderRadius: BorderRadius.circular(size * 0.2),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: CustomIconWidget(
+                  iconName: 'home',
+                  size: size * 0.55,
+                  color: colors.primary,
+                ),
+              ),
+            ),
           ),
-        ],
-      ),
-      child: Center(
-        child: CustomIconWidget(
-          iconName: 'home',
-          color: colors.primary,
-          size: 64.w,
-        ),
-      ),
+        );
+      },
     );
   }
 }
