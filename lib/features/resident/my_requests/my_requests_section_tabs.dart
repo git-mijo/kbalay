@@ -12,7 +12,7 @@ class MyRequestsSectionTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final items = ['Active (2)', 'Completed (1)'];
+    final items = ['Active', 'Completed'];
 
     return Container(
       height: 52,

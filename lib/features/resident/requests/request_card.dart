@@ -1,4 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_hoa/features/authentication/services/auth_service.dart';
 import 'request_details_page.dart';
 
 class PostCard extends StatefulWidget {
@@ -33,6 +35,32 @@ class PostCard extends StatefulWidget {
 
 class _PostCardState extends State<PostCard> {
   bool _hovered = false;
+  bool _offerSent = false;
+  bool _loadingOfferStatus = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkIfOfferSent();
+  }
+
+  Future<void> _checkIfOfferSent() async {
+    final userId = AuthService().currentUser!.uid;
+    final doc = await FirebaseFirestore.instance
+        .collection('requests')
+        .doc(widget.requestId)
+        .collection('offers')
+        .where('offerUserId', isEqualTo: userId)
+        .limit(1)
+        .get();
+
+    if (mounted) {
+      setState(() {
+        _offerSent = doc.docs.isNotEmpty;
+        _loadingOfferStatus = false;
+      });
+    }
+  }
 
   String get timeAgo {
     final now = DateTime.now();
@@ -144,32 +172,38 @@ class _PostCardState extends State<PostCard> {
                       ),
                     ),
                     if (widget.isMyRequest != true)
-                      ElevatedButton(
-                        onPressed: () {},
-                        style: ButtonStyle(
-                          mouseCursor: WidgetStateMouseCursor.clickable,
-                          backgroundColor: WidgetStateProperty.resolveWith<Color>(
-                            (states) {
-                              if (states.contains(WidgetState.hovered)) return const Color(0xFF0F4FE0);
-                              return const Color(0xFF155DFD);
+                      _loadingOfferStatus
+                        ? const SizedBox(
+                            height: 36,
+                            width: 36,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : ElevatedButton(
+                            onPressed: _offerSent ? null : () {
+                              // navigate to request details or call offer function
                             },
-                          ),
-                          foregroundColor: WidgetStateProperty.all(Colors.white),
-                          elevation: WidgetStateProperty.resolveWith<double>(
-                            (states) => states.contains(WidgetState.hovered) ? 2 : 0,
-                          ),
-                          padding: WidgetStateProperty.all(
-                            const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-                          ),
-                          shape: WidgetStateProperty.all(
-                            RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                        ),
-                        child: const Text(
-                          'Offer help',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w100),
-                        ),
-                      )
+                            style: ButtonStyle(
+                              backgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+                                if (_offerSent) return Colors.yellow.shade800;
+                                if (states.contains(WidgetState.hovered)) return const Color(0xFF0F4FE0);
+                                return const Color(0xFF155DFD);
+                              }),
+                              foregroundColor: WidgetStateProperty.all(Colors.white),
+                              elevation: WidgetStateProperty.resolveWith<double>(
+                                (states) => states.contains(WidgetState.hovered) ? 2 : 0,
+                              ),
+                              padding: WidgetStateProperty.all(
+                                const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                              ),
+                              shape: WidgetStateProperty.all(
+                                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                            ),
+                            child: Text(
+                              _offerSent ? "Offer sent" : "Offer help",
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w100),
+                            ),
+                          )
                     else
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
