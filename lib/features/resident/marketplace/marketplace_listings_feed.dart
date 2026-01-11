@@ -6,8 +6,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 class MarketplaceListingsFeed extends StatefulWidget {
   final bool isMyListings;
+  final bool isMyPurchases;
 
-  const MarketplaceListingsFeed({super.key, this.isMyListings = false});
+  const MarketplaceListingsFeed({
+    super.key,
+    this.isMyListings = false,
+    this.isMyPurchases = false,
+  });
 
   @override
   State<MarketplaceListingsFeed> createState() =>
@@ -15,7 +20,10 @@ class MarketplaceListingsFeed extends StatefulWidget {
 }
 
 class _MarketplaceListingsFeedState extends State<MarketplaceListingsFeed> {
-  String? selectedCategoryId; // null = ALL
+  String? selectedCategoryId;
+  String? selectedStatus;
+
+  final List<String> statuses = ['ACTIVE', 'SOLD', 'WITHDRAWN'];
 
   Future<Map<String, String>> _fetchCategories() async {
     final snapshot = await FirebaseFirestore.instance
@@ -89,6 +97,39 @@ class _MarketplaceListingsFeedState extends State<MarketplaceListingsFeed> {
     );
   }
 
+  Widget _buildStatusDropdown() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
+      child: InputDecorator(
+        decoration: const InputDecoration(
+          labelText: 'Status',
+          border: OutlineInputBorder(),
+          isDense: true,
+          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        ),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<String?>(
+            value: selectedStatus,
+            isExpanded: true,
+            hint: const Text('All'),
+            items: [
+              const DropdownMenuItem<String?>(value: null, child: Text('All')),
+              ...statuses.map(
+                (status) => DropdownMenuItem<String?>(
+                  value: status,
+                  child: Text(_prettyStatus(status)),
+                ),
+              ),
+            ],
+            onChanged: (value) {
+              setState(() => selectedStatus = value);
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
@@ -111,7 +152,6 @@ class _MarketplaceListingsFeedState extends State<MarketplaceListingsFeed> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-
           if (!snapshot.hasData || snapshot.hasError) {
             return const Center(child: Text('Error loading data'));
           }
@@ -142,6 +182,8 @@ class _MarketplaceListingsFeedState extends State<MarketplaceListingsFeed> {
                     return {
                       'listingId': doc.id,
                       'sellerId': data['sellerId'],
+                      'buyerId': data['buyerId'],
+                      'soldAt': data['soldAt'],
                       'sellerName': sellerInfo['name'] ?? 'Anonymous',
                       'sellerProfileImage':
                           sellerInfo['profileImageBase64'] ?? '',
@@ -160,17 +202,33 @@ class _MarketplaceListingsFeedState extends State<MarketplaceListingsFeed> {
                   .where((l) {
                     if (user == null) return false;
 
-                    // My listings
                     if (widget.isMyListings) {
                       if (l['sellerId'] != user.uid) return false;
-                    } else {
-                      if (l['sellerId'] == user.uid ||
-                          l['status'] != 'ACTIVE') {
+                      if (selectedStatus != null &&
+                          l['status'] != selectedStatus) {
                         return false;
                       }
+                      if (selectedCategoryId != null &&
+                          l['category'] != selectedCategoryId)
+                        return false;
+                      return true;
                     }
 
-                    // Category filter
+                    if (widget.isMyPurchases) {
+                      if (l['buyerId'] != user.uid) return false;
+
+                      if (selectedCategoryId != null &&
+                          l['category'] != selectedCategoryId) {
+                        return false;
+                      }
+
+                      return true;
+                    }
+
+                    if (l['sellerId'] == user.uid || l['status'] != 'ACTIVE') {
+                      return false;
+                    }
+
                     if (selectedCategoryId != null &&
                         l['category'] != selectedCategoryId) {
                       return false;
@@ -180,29 +238,37 @@ class _MarketplaceListingsFeedState extends State<MarketplaceListingsFeed> {
                   })
                   .toList();
 
-              if (listings.isEmpty) {
-                return const Center(child: Text('No listings found.'));
-              }
-
               return Column(
                 children: [
                   _buildCategoryDropdown(categoryMap),
+                  if (widget.isMyListings) _buildStatusDropdown(),
 
                   Expanded(
-                    child: GridView.builder(
-                      padding: EdgeInsets.zero,
-                      gridDelegate:
-                          const SliverGridDelegateWithMaxCrossAxisExtent(
-                            maxCrossAxisExtent: 250,
-                            mainAxisSpacing: 10,
-                            crossAxisSpacing: 10,
-                            childAspectRatio: 1.05,
+                    child: listings.isEmpty
+                        ? Center(
+                            child: Text(
+                              widget.isMyPurchases
+                                  ? 'No purchases found.'
+                                  : 'No listings found.',
+                            ),
+                          )
+                        : GridView.builder(
+                            padding: EdgeInsets.zero,
+                            gridDelegate:
+                                const SliverGridDelegateWithMaxCrossAxisExtent(
+                                  maxCrossAxisExtent: 250,
+                                  mainAxisSpacing: 10,
+                                  crossAxisSpacing: 10,
+                                  childAspectRatio: 1.05,
+                                ),
+                            itemCount: listings.length,
+                            itemBuilder: (context, index) {
+                              return MarketplaceCard(
+                                data: listings[index],
+                                isMyPurchases: widget.isMyPurchases,
+                              );
+                            },
                           ),
-                      itemCount: listings.length,
-                      itemBuilder: (context, index) {
-                        return MarketplaceCard(data: listings[index]);
-                      },
-                    ),
                   ),
                 ],
               );
@@ -212,4 +278,8 @@ class _MarketplaceListingsFeedState extends State<MarketplaceListingsFeed> {
       ),
     );
   }
+}
+
+String _prettyStatus(String status) {
+  return status[0] + status.substring(1).toLowerCase();
 }

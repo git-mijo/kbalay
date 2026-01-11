@@ -94,6 +94,8 @@ class _CreateListingPageState extends State<CreateListingPage> {
         base64Photos.add(base64Encode(bytes));
       }
 
+      final isWithdraw = widget.isEdit && _status == 'WITHDRAWN';
+
       final payload = {
         'title': _titleController.text.trim(),
         'price': double.parse(_priceController.text),
@@ -102,16 +104,41 @@ class _CreateListingPageState extends State<CreateListingPage> {
         'photos': base64Photos,
         'status': _status,
         'updatedAt': FieldValue.serverTimestamp(),
+
+        if (isWithdraw) ...{'buyerId': null, 'soldAt': null},
       };
 
       final col = FirebaseFirestore.instance.collection('marketplace_listings');
 
       if (widget.isEdit) {
-        await col.doc(widget.listingId).update(payload);
+        final db = FirebaseFirestore.instance;
+        final batch = db.batch();
+
+        final listingRef = col.doc(widget.listingId);
+        batch.update(listingRef, payload);
+
+        // If withdrawing, revert any APPROVED offers back to PENDING
+        if (isWithdraw) {
+          final approvedOffers = await db
+              .collection('marketplace_offers')
+              .where('listingId', isEqualTo: widget.listingId)
+              .where('status', isEqualTo: 'APPROVED')
+              .get();
+
+          for (final doc in approvedOffers.docs) {
+            batch.update(doc.reference, {
+              'status': 'PENDING',
+              'updatedAt': FieldValue.serverTimestamp(),
+            });
+          }
+        }
+
+        await batch.commit();
       } else {
         await col.add({
           ...payload,
           'sellerId': user.uid,
+          'buyerId': null,
           'timePosted': FieldValue.serverTimestamp(),
         });
       }
@@ -253,20 +280,31 @@ class _CreateListingPageState extends State<CreateListingPage> {
   }
 
   Widget _buildStatus() {
+    final isSold = _status == 'SOLD';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('Status', style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 4),
-        DropdownButtonFormField<String>(
-          value: _status,
-          items: const [
-            DropdownMenuItem(value: 'ACTIVE', child: Text('Active')),
-            DropdownMenuItem(value: 'WITHDRAWN', child: Text('Withdrawn')),
-          ],
-          onChanged: (v) => setState(() => _status = v!),
-          decoration: const InputDecoration(border: OutlineInputBorder()),
-        ),
+
+        if (isSold)
+          TextFormField(
+            initialValue: 'Sold',
+            enabled: false,
+            decoration: const InputDecoration(border: OutlineInputBorder()),
+          )
+        else
+          DropdownButtonFormField<String>(
+            value: _status,
+            items: const [
+              DropdownMenuItem(value: 'ACTIVE', child: Text('Active')),
+              DropdownMenuItem(value: 'WITHDRAWN', child: Text('Withdrawn')),
+            ],
+            onChanged: (v) => setState(() => _status = v!),
+            decoration: const InputDecoration(border: OutlineInputBorder()),
+          ),
+
         const SizedBox(height: 16),
       ],
     );
