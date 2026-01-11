@@ -285,15 +285,24 @@ class _MarketplaceListingDetailPageState
                                 chatId = newChatRef.id;
                               }
 
-                              Navigator.push(
+                              final updatedData = await Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (_) => MarketplaceChatPage(
-                                    listingId: listingId,
+                                    listingId: data['listingId'],
                                     chatId: chatId,
                                   ),
                                 ),
                               );
+
+                              if (updatedData != null &&
+                                  updatedData['offerCancelled'] == true) {
+                                // remove offer from local state
+                                setState(() {
+                                  data['buyerId'] = null;
+                                  // other updates if needed
+                                });
+                              }
 
                               setState(() => _loadingOffer = false);
                             },
@@ -333,13 +342,13 @@ class _MarketplaceListingDetailPageState
                       data['sellerId'] != currentUserId &&
                       !(data['status'] == 'SOLD' &&
                           currentUserId == data['buyerId']))
-                    FutureBuilder<QuerySnapshot>(
-                      future: FirebaseFirestore.instance
+                    StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance
                           .collection('marketplace_offers')
                           .where('listingId', isEqualTo: data['listingId'])
                           .where('buyerId', isEqualTo: currentUserId)
                           .limit(1)
-                          .get(),
+                          .snapshots(),
                       builder: (context, snapshot) {
                         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                           return const SizedBox();

@@ -101,7 +101,7 @@ class _MarketplaceOffersPageState extends State<MarketplaceOffersPage> {
                           vertical: 12,
                         ),
                         child: Text(
-                          'Item: $widget.listingTitle',
+                          widget.listingTitle,
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
