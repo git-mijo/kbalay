@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
 import './marketplace_listing_detail_page.dart';
 import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import './marketplace_offers_page.dart';
 
 class MarketplaceCard extends StatelessWidget {
   final Map<String, dynamic> data;
-  const MarketplaceCard({super.key, required this.data});
+  final bool isMyPurchases;
+  const MarketplaceCard({
+    super.key,
+    required this.data,
+    this.isMyPurchases = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -15,6 +23,9 @@ class MarketplaceCard extends StatelessWidget {
 
     final status = data['status'];
     final isOverlay = status == 'SOLD' || status == 'WITHDRAWN';
+
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    final isSeller = currentUserId != null && data['sellerId'] == currentUserId;
 
     return GestureDetector(
       onTap: () {
@@ -51,13 +62,13 @@ class MarketplaceCard extends StatelessWidget {
                         fit: BoxFit.cover,
                       ),
 
-                if (isOverlay)
+                if (isOverlay && !isMyPurchases)
                   Positioned.fill(
                     child: Container(
                       color: Colors.black45,
                       alignment: Alignment.center,
                       child: Text(
-                        status, // will display "SOLD" or "WITHDRAWN"
+                        status,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 20,
@@ -96,25 +107,85 @@ class MarketplaceCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Name / Title on top
-                  Text(
-                    data['title'],
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  // Price below
-                  Text(
-                    '₱${data['price']}',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Color.fromARGB(255, 54, 117, 255),
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Title
+                      Text(
+                        data['title'],
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      // Price + Offers Button Row
+                      Row(
+                        children: [
+                          // Price on left
+                          Text(
+                            '₱${data['price']}',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: Color.fromARGB(255, 54, 117, 255),
+                            ),
+                          ),
+
+                          const Spacer(),
+
+                          if (isSeller)
+                            StreamBuilder<QuerySnapshot>(
+                              stream: FirebaseFirestore.instance
+                                  .collection('marketplace_offers')
+                                  .where(
+                                    'listingId',
+                                    isEqualTo: data['listingId'],
+                                  )
+                                  .snapshots(),
+                              builder: (context, snapshot) {
+                                if (!snapshot.hasData ||
+                                    snapshot.data!.docs.isEmpty) {
+                                  return const SizedBox.shrink();
+                                }
+                                final offerCount = snapshot.data!.docs.length;
+                                return ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => MarketplaceOffersPage(
+                                          listingId: data['listingId'],
+                                          listingTitle: data['title'],
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 8,
+                                    ),
+                                    minimumSize: const Size(0, 30),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'Offers ($offerCount)',
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                        ],
+                      ),
+                    ],
                   ),
                 ],
               ),

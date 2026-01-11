@@ -12,7 +12,7 @@ class MarketplaceSectionTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final items = ['All Listings', 'My Listings'];
+    final items = ['All Listings', 'My Listings', 'My Purchases'];
 
     return Container(
       height: 52,

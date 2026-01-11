@@ -6,8 +6,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 class MarketplaceListingsFeed extends StatefulWidget {
   final bool isMyListings;
+  final bool isMyPurchases;
 
-  const MarketplaceListingsFeed({super.key, this.isMyListings = false});
+  const MarketplaceListingsFeed({
+    super.key,
+    this.isMyListings = false,
+    this.isMyPurchases = false,
+  });
 
   @override
   State<MarketplaceListingsFeed> createState() =>
@@ -15,7 +20,7 @@ class MarketplaceListingsFeed extends StatefulWidget {
 }
 
 class _MarketplaceListingsFeedState extends State<MarketplaceListingsFeed> {
-  String? selectedCategoryId; // null = ALL
+  String? selectedCategoryId;
 
   Future<Map<String, String>> _fetchCategories() async {
     final snapshot = await FirebaseFirestore.instance
@@ -142,6 +147,8 @@ class _MarketplaceListingsFeedState extends State<MarketplaceListingsFeed> {
                     return {
                       'listingId': doc.id,
                       'sellerId': data['sellerId'],
+                      'buyerId': data['buyerId'],
+                      'soldAt': data['soldAt'],
                       'sellerName': sellerInfo['name'] ?? 'Anonymous',
                       'sellerProfileImage':
                           sellerInfo['profileImageBase64'] ?? '',
@@ -160,17 +167,18 @@ class _MarketplaceListingsFeedState extends State<MarketplaceListingsFeed> {
                   .where((l) {
                     if (user == null) return false;
 
-                    // My listings
                     if (widget.isMyListings) {
-                      if (l['sellerId'] != user.uid) return false;
-                    } else {
-                      if (l['sellerId'] == user.uid ||
-                          l['status'] != 'ACTIVE') {
-                        return false;
-                      }
+                      return l['sellerId'] == user.uid;
                     }
 
-                    // Category filter
+                    if (widget.isMyPurchases) {
+                      return l['buyerId'] == user.uid;
+                    }
+
+                    if (l['sellerId'] == user.uid || l['status'] != 'ACTIVE') {
+                      return false;
+                    }
+
                     if (selectedCategoryId != null &&
                         l['category'] != selectedCategoryId) {
                       return false;
@@ -181,7 +189,13 @@ class _MarketplaceListingsFeedState extends State<MarketplaceListingsFeed> {
                   .toList();
 
               if (listings.isEmpty) {
-                return const Center(child: Text('No listings found.'));
+                return Center(
+                  child: Text(
+                    widget.isMyPurchases
+                        ? 'No purchases yet.'
+                        : 'No listings found.',
+                  ),
+                );
               }
 
               return Column(
@@ -200,7 +214,10 @@ class _MarketplaceListingsFeedState extends State<MarketplaceListingsFeed> {
                           ),
                       itemCount: listings.length,
                       itemBuilder: (context, index) {
-                        return MarketplaceCard(data: listings[index]);
+                        return MarketplaceCard(
+                          data: listings[index],
+                          isMyPurchases: widget.isMyPurchases,
+                        );
                       },
                     ),
                   ),
