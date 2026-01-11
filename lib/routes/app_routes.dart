@@ -6,7 +6,7 @@ import 'package:flutter_hoa/features/admin/report/page.dart';
 import 'package:flutter_hoa/features/resident/profile/profile_settings.dart';
 import '../features/splash_screen/splash_screen.dart';
 import '../features/onboarding/onboarding.dart';
-import '../features/resident/home/page.dart';
+import '../features/resident/community/page.dart';
 import '../features/authentication/signin/page.dart';
 import '../features/authentication/signup/page.dart';
 

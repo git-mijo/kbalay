@@ -35,6 +35,16 @@ class _ReportDueUsersPageState extends State<ReportDueUsersPage> {
     setState(() => _users = map);
   }
 
+  Future<void> _fetchPayments() async {
+    final snapshot = await _db.collection('payments').get();
+    final map = <String, dynamic>{};
+    for (var doc in snapshot.docs) {
+      final data = doc.data();
+      map[data['categoryId']] = data;
+    }
+    setState(() => _paymentCategories = map);
+  }
+
   Future<void> _fetchPaymentCategories() async {
     final snapshot = await _db.collection('payment_categories').get();
     final map = <String, dynamic>{};

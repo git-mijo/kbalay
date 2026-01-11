@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hoa/features/resident/dashboard/bar.dart';
 import 'package:flutter_hoa/features/resident/dashboard/page.dart';
 import 'package:flutter_hoa/features/resident/my_requests/my_requests_feed.dart';
 import 'package:flutter_hoa/features/resident/my_requests/my_requests_feed_completed.dart';
 import 'package:flutter_hoa/features/resident/my_requests/my_requests_section_tabs.dart';
 import '../profile/profile_page.dart';
 
-import 'resident_app_bar.dart';
+import 'community_bar.dart';
 import 'resident_location_bar.dart';
 import 'resident_section_tabs.dart';
 import '../requests/requests_feed.dart';
@@ -33,11 +34,12 @@ class _ResidentPageState extends State<ResidentPage> {
   Widget _buildPage(int index) {
     switch (index) {
       case 0:
+        return const UserDashboardPage();
+      case 1:
         // Home tab
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const ResidentLocationBar(),
             ResidentSectionTabs(
               selectedIndex: _selectedSectionIndex,
               onChanged: (i) => setState(() => _selectedSectionIndex = i),
@@ -49,7 +51,7 @@ class _ResidentPageState extends State<ResidentPage> {
             ),
           ],
         );
-      case 1:
+      case 2:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -65,7 +67,7 @@ class _ResidentPageState extends State<ResidentPage> {
             ),
           ],
         );
-      case 2:
+      case 3:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -80,8 +82,8 @@ class _ResidentPageState extends State<ResidentPage> {
               ),
           ],
         );
-      case 3:
-        return const UserDashboardPage();
+      case 4:
+        return const ProfilePage();
       default:
         return const SizedBox.shrink();
     }
@@ -92,15 +94,17 @@ class _ResidentPageState extends State<ResidentPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       appBar: _selectedBottomIndex == 0
-          ? const ResidentAppBar()
+          ? const DashboardBar()
           : _selectedBottomIndex == 1
+          ? const CommunityBar()
+          : _selectedBottomIndex == 2
           ? const MarketplaceAppBar()
-          // : _selectedBottomIndex == 2
-          // ? const MyRequestsAppBar()
+          : _selectedBottomIndex == 3
+          ? const MyRequestBar()
           : const ProfileAppBar(),
       body: IndexedStack(
         index: _selectedBottomIndex,
-        children: [_buildPage(0), _buildPage(1), _buildPage(2), _buildPage(3)],
+        children: [_buildPage(0), _buildPage(1), _buildPage(2), _buildPage(3), _buildPage(4)],
       ),
       bottomNavigationBar: ResidentBottomNav(
         currentIndex: _selectedBottomIndex,

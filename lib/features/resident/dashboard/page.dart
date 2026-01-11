@@ -15,11 +15,6 @@ class UserDashboardPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
-      appBar: AppBar(
-        title: const Text("Dashboard"),
-        backgroundColor: Colors.blueAccent,
-        elevation: 0,
-      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -162,16 +157,6 @@ class MyOffersSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final String? userId = AuthService().currentUser?.uid;
-
-    FirebaseFirestore.instance
-      .collectionGroup('offers')
-      .snapshots()
-      .listen((snapshot) {
-        print("Found ${snapshot.docs.length} offers");
-        for (var doc in snapshot.docs) {
-          print(doc.data());
-        }
-      });
 
     return StreamBuilder<QuerySnapshot>(
       // Query all offers made by this user across all requests

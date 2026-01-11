@@ -538,7 +538,7 @@ class _ChatPageState extends State<ChatPage> {
         break;
       case 'pending':
         buttonColor = Colors.orangeAccent;
-        buttonText = "Pending Offer";
+        buttonText = "Approve Offer";
         buttonEnabled = true; // allow approving
         break;
       default:
