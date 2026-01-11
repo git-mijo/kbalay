@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
-
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_hoa/features/authentication/services/auth_service.dart';
 import 'package:flutter_hoa/routes/app_routes.dart';
@@ -10,7 +10,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key});
+  final String? userId;
+  
+  const ProfilePage({super.key, this.userId});
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -20,6 +22,7 @@ class _ProfilePageState extends State<ProfilePage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final ImagePicker _picker = ImagePicker();
+  late final int _responseRate;
 
   Future<void> _pickAndSaveBase64Image(String docId) async {
     final pickedFile = await _picker.pickImage(
@@ -39,8 +42,16 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _responseRate = 60 + Random().nextInt(41); // 60%–100%
+  }
+
+  @override
   Widget build(BuildContext context) {
     final user = _auth.currentUser;
+
+    final bool isViewingOtherUser = widget.userId != null;
 
     if (user == null) {
       return const Scaffold(
@@ -48,11 +59,20 @@ class _ProfilePageState extends State<ProfilePage> {
       );
     }
 
+    final profileUserId = widget.userId ?? user!.uid;
+
+
     return Scaffold(
+      appBar: isViewingOtherUser
+      ? AppBar(
+          title: const Text("Seller's Profile"),
+          leading: const BackButton(),
+        )
+      : null,
       body: StreamBuilder<QuerySnapshot>(
         stream: _db
             .collection('master_residents')
-            .where('userId', isEqualTo: user.uid)
+            .where('userId', isEqualTo: profileUserId)
             .limit(1)
             .snapshots(),
         builder: (context, snapshot) {
@@ -66,6 +86,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
           final doc = snapshot.data!.docs.first;
           final data = doc.data() as Map<String, dynamic>;
+          final bool isOwner = data['userId'] == user.uid;
 
           final fullName =
               "${data['firstName'] ?? ''} ${data['middleName'] ?? ''} ${data['lastName'] ?? ''} ${data['suffix'] ?? ''}"
@@ -115,7 +136,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       Row(
                         children: [
                           GestureDetector(
-                            onTap: () => _pickAndSaveBase64Image(doc.id),
+                            onTap: isOwner ? () => _pickAndSaveBase64Image(doc.id) : null,
                             child: Stack(
                               children: [
                                 CircleAvatar(
@@ -136,6 +157,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                         )
                                       : null,
                                 ),
+                                if (isOwner)
                                 Positioned(
                                   bottom: 2,
                                   right: 2,
@@ -191,11 +213,12 @@ class _ProfilePageState extends State<ProfilePage> {
                                 ),
                               ),
                               const SizedBox(height: 4),
-                              Text(
-                                email,
-                                style:
-                                    const TextStyle(color: Colors.white70),
-                              ),
+                              if (isOwner)
+                                Text(
+                                  email,
+                                  style:
+                                      const TextStyle(color: Colors.white70),
+                                ),
                             ],
                           ),
                         ],
@@ -273,13 +296,29 @@ class _ProfilePageState extends State<ProfilePage> {
                 _sectionTitle('Activity'),
                 _infoCard(
                   child: Column(
-                    children: const [
+                    children: [
                       Row(
-                        mainAxisAlignment:
-                            MainAxisAlignment.spaceAround,
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          _ActivityItem('3', 'Requests Posted'),
-                          _ActivityItem('12', 'Times Helped'),
+                          StreamBuilder<QuerySnapshot>(
+                            stream: FirebaseFirestore.instance
+                                .collection('requests')
+                                .where('requesterId', isEqualTo: profileUserId)
+                                .snapshots(),
+                            builder: (context, snapshot) {
+                              if (!snapshot.hasData) {
+                                return const _ActivityItem('0', 'Requests Posted');
+                              }
+
+                              final count = snapshot.data!.docs.length;
+
+                              return _ActivityItem(
+                                count.toString(),
+                                'Requests Posted',
+                              );
+                            },
+                          ),
+                          const _ActivityItem('12', 'Times Helped'),
                         ],
                       ),
                       SizedBox(height: 12),
@@ -288,7 +327,8 @@ class _ProfilePageState extends State<ProfilePage> {
                             MainAxisAlignment.spaceAround,
                         children: [
                           _ActivityItem('15', 'Offers Made'),
-                          _ActivityItem('98%', 'Response Rate'),
+                          _ActivityItem('$_responseRate%', 'Response Rate'),
+
                         ],
                       ),
                     ],
@@ -307,36 +347,37 @@ class _ProfilePageState extends State<ProfilePage> {
                     ],
                   ),
                 ),
+                if (isOwner) ...[
+                  const SizedBox(height: 12),
+                  _profileActionButton(
+                    icon: Icons.settings,
+                    label: 'Profile Settings',
+                    onTap: () async {
+                      await Navigator.pushNamed(
+                          context,
+                          AppRoutes.residentProfileSettings);
+                    },
+                  ),
+                  _profileActionButton(
+                    icon: Icons.help_outline,
+                    label: 'Help & Support',
+                    onTap: () {},
+                  ),
+                  _profileActionButton(
+                    icon: Icons.logout,
+                    label: 'Sign Out',
+                    isLogout: true,
+                    onTap: () async {
+                      await authService.value.signOut();
+                      Fluttertoast.showToast(
+                          msg: 'Logged out successfully');
+                      Navigator.pushReplacementNamed(
+                          context, AppRoutes.signIn);
+                    },
+                  ),
 
-                const SizedBox(height: 12),
-                _profileActionButton(
-                  icon: Icons.settings,
-                  label: 'Profile Settings',
-                  onTap: () async {
-                    await Navigator.pushNamed(
-                        context,
-                        AppRoutes.residentProfileSettings);
-                  },
-                ),
-                _profileActionButton(
-                  icon: Icons.help_outline,
-                  label: 'Help & Support',
-                  onTap: () {},
-                ),
-                _profileActionButton(
-                  icon: Icons.logout,
-                  label: 'Sign Out',
-                  isLogout: true,
-                  onTap: () async {
-                    await authService.value.signOut();
-                    Fluttertoast.showToast(
-                        msg: 'Logged out successfully');
-                    Navigator.pushReplacementNamed(
-                        context, AppRoutes.signIn);
-                  },
-                ),
-
-                const SizedBox(height: 80),
+                  const SizedBox(height: 80),
+                ],
               ],
             ),
           );
