@@ -330,27 +330,29 @@ class _ChatPageState extends State<ChatPage> {
           ),
 
           // Input
-          Container(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    decoration: const InputDecoration(
-                      hintText: "Type your message...",
-                      border: OutlineInputBorder(),
+          if(requestData?['status'] != 'Completed')
+            Container(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _controller,
+                      decoration: const InputDecoration(
+                        hintText: "Type your message...",
+                        border: OutlineInputBorder(),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(Icons.send, color: Colors.blueAccent),
-                  onPressed: _sendMessage,
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.send, color: Colors.blueAccent),
+                    onPressed: _sendMessage,
+                  ),
+                ],
+              ),
             ),
-          ),
+            const SizedBox(height: 5),
         ],
       ),
     );
@@ -438,20 +440,21 @@ class _ChatPageState extends State<ChatPage> {
               ],
             ),
           ),
-          if (_loadingOtherOffer)
-            const SizedBox(
-              width: 36,
-              height: 36,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          else if (!_otherOfferSent)
-            ElevatedButton(
-              onPressed: () {
-                print("Request help pressed");
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
-              child: const Text("Request Help"),
-            ),
+          if(requestData?['status'] != 'Completed')
+            if (_loadingOtherOffer)
+              const SizedBox(
+                width: 36,
+                height: 36,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else if (!_otherOfferSent)
+              ElevatedButton(
+                onPressed: () {
+                  print("Request help pressed");
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
+                child: const Text("Request Help"),
+              ),
         ],
       ),
     );
