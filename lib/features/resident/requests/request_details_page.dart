@@ -58,6 +58,9 @@ class _RequestDetailsPageState extends State<RequestDetailsPage> {
           final firstName = requesterDoc['firstName'] ?? '';
           final lastName = requesterDoc['lastName'] ?? '';
           data['requesterName'] = "$firstName $lastName".trim();
+          if (requesterDoc.data().containsKey('profileImageBase64')) {
+            data['userImage'] = requesterDoc['profileImageBase64'];
+          }
         } else {
           data['requesterName'] = "Unknown";
         }
@@ -77,6 +80,8 @@ class _RequestDetailsPageState extends State<RequestDetailsPage> {
       final catName = (data['category'] != null && typeMap.containsKey(data['category']))
           ? typeMap[data['category']]!
           : "Unknown";
+
+      data['isMyRequest'] = widget.isMyRequest;
 
       setState(() {
         requestData = data;
@@ -101,7 +106,7 @@ class _RequestDetailsPageState extends State<RequestDetailsPage> {
     ];
 
     if (widget.isMyRequest) {
-      sections.add(const RequestDetailChats());
+      sections.add(RequestDetailChats(requestId: widget.requestId));
     }
 
     return sections;
@@ -121,12 +126,13 @@ class _RequestDetailsPageState extends State<RequestDetailsPage> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          RequestStatusBar(),
-          RequestSectionTabs(
-            selectedIndex: _selectedSectionIndex,
-            showChats: widget.isMyRequest,
-            onChanged: (i) => setState(() => _selectedSectionIndex = i),
-          ),
+          // RequestStatusBar(),
+          if(widget.isMyRequest)
+            RequestSectionTabs(
+              selectedIndex: _selectedSectionIndex,
+              showChats: widget.isMyRequest,
+              onChanged: (i) => setState(() => _selectedSectionIndex = i),
+            ),
           Expanded(child: _buildSections()[_selectedSectionIndex]),
         ],
       ),

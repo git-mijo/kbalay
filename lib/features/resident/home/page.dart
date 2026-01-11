@@ -10,7 +10,6 @@ import '../requests/requests_feed.dart';
 import 'resident_announcements_feed.dart';
 import '../widgets/resident_bottom_nav.dart';
 import '../marketplace/marketplace_app_bar.dart';
-import '../my_requests/my_requests_app_bar.dart';
 import '../profile/profile_app_bar.dart';
 
 class ResidentPage extends StatefulWidget {
@@ -73,8 +72,8 @@ class _ResidentPageState extends State<ResidentPage> {
           ? const ResidentAppBar()
           : _selectedBottomIndex == 1
           ? const MarketplaceAppBar()
-          : _selectedBottomIndex == 2
-          ? const MyRequestsAppBar()
+          // : _selectedBottomIndex == 2
+          // ? const MyRequestsAppBar()
           : const ProfileAppBar(),
       body: IndexedStack(
         index: _selectedBottomIndex,

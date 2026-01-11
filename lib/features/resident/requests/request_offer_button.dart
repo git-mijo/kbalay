@@ -1,4 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_hoa/features/authentication/services/auth_service.dart';
 import 'package:flutter_hoa/features/chats/page.dart';
 
 class OfferHelpButton extends StatefulWidget {
@@ -19,11 +21,73 @@ class OfferHelpButton extends StatefulWidget {
 
 class _OfferHelpButtonState extends State<OfferHelpButton> {
   bool _hovered = false;
+  bool _loading = true;
+  bool _offerSent = false;
+
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkOfferStatus();
+  }
+
+  Future<void> _checkOfferStatus() async {
+    final userId = AuthService().currentUser!.uid;
+    final offersQuery = await _db
+        .collection('requests')
+        .doc(widget.requestId)
+        .collection('offers')
+        .where('offerUserId', isEqualTo: userId)
+        .limit(1)
+        .get();
+
+    setState(() {
+      _offerSent = offersQuery.docs.isNotEmpty;
+      _loading = false;
+    });
+  }
+
+  Future<void> _toggleOffer() async {
+    setState(() => _loading = true);
+
+    final userId = AuthService().currentUser!.uid;
+    final offersRef = _db.collection('requests').doc(widget.requestId).collection('offers');
+
+    if (_offerSent) {
+      // Cancel the offer
+      final existingQuery = await offersRef.where('offerUserId', isEqualTo: userId).limit(1).get();
+      if (existingQuery.docs.isNotEmpty) {
+        await offersRef.doc(existingQuery.docs.first.id).delete();
+      }
+      _offerSent = false;
+    } else {
+      // Send a new offer
+      final newDoc = offersRef.doc();
+      await newDoc.set({
+        'offerId': newDoc.id,
+        'offerStatus': 'pending',
+        'offerUserId': userId,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+      _offerSent = true;
+    }
+
+    setState(() => _loading = false);
+  }
 
   @override
   Widget build(BuildContext context) {
     const baseColor = Color(0xFF155DFD);
     const hoverColor = Color.fromARGB(255, 4, 22, 190);
+
+    if (_loading) {
+      return SizedBox(
+        height: 52,
+        width: double.infinity,
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      );
+    }
 
     return Container(
       decoration: const BoxDecoration(
@@ -55,15 +119,15 @@ class _OfferHelpButtonState extends State<OfferHelpButton> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: _hovered ? hoverColor : baseColor,
+              backgroundColor: _offerSent ? const Color.fromARGB(255, 243, 149, 26) : (_hovered ? hoverColor : baseColor),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Text(
-              'Offer to Help',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            child: Text(
+              _offerSent ? 'Offer already sent. Check chat.' : 'Offer to Help',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
           ),
         ),

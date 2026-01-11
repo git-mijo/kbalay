@@ -18,7 +18,7 @@ class RequestDetailsAppBar extends StatelessWidget
           width: 40,
           child: IconButton(
             padding: EdgeInsets.zero,
-            icon: const Icon(Icons.arrow_back, size: 24),
+            icon: const Icon(Icons.arrow_back, size: 24, color: Colors.white,),
             onPressed: () => Navigator.pop(context),
           ),
         ),
@@ -27,12 +27,12 @@ class RequestDetailsAppBar extends StatelessWidget
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: const Text(
           'Request Details',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.w500),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.white),
         ),
       ),
     );
   }
 
   @override
-  Size get preferredSize => const Size.fromHeight(72);
+  Size get preferredSize => const Size.fromHeight(64);
 }

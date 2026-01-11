@@ -28,6 +28,8 @@ class ResidentRequestsFeed extends StatelessWidget {
     return userMap;
   }
 
+  
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<Map<String, String>>>(
@@ -60,16 +62,20 @@ class ResidentRequestsFeed extends StatelessWidget {
             }
 
             final requests = requestSnapshot.data!.docs;
+            final user = AuthService().currentUser;
+            final currentUserId = user!.uid;
+
+            final filteredRequests = requests
+                .where((r) => (r.data() as Map<String, dynamic>)['requesterId'] != currentUserId)
+                .toList();
 
             return ListView.builder(
               padding: const EdgeInsets.all(16),
-              itemCount: requests.length,
+              itemCount: filteredRequests.length,
               itemBuilder: (context, index) {
-                final data = requests[index].data() as Map<String, dynamic>;
-
+                final data = filteredRequests[index].data() as Map<String, dynamic>;
                 final categoryName = requestTypeMap[data['category']] ?? "Unknown";
                 final requesterName = userMap[data['requesterId']] ?? "Anonymous";
-                final user = AuthService().currentUser;
 
                 return PostCard(
                   requestId: data['requestId'],
