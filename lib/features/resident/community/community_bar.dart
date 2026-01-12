@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class MyRequestBar extends StatelessWidget implements PreferredSizeWidget {
-  const MyRequestBar({super.key});
+class CommunityBar extends StatelessWidget implements PreferredSizeWidget {
+  const CommunityBar({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -12,7 +12,7 @@ class MyRequestBar extends StatelessWidget implements PreferredSizeWidget {
       titleSpacing: 0,
       title: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: const Text('My Requests', style: TextStyle(color: Colors.white)),
+        child: const Text('Community', style: TextStyle(color: Colors.white)),
       ),
     );
   }

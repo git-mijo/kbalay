@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hoa/features/admin/payment/services/payment_service.dart';
+import 'package:flutter_hoa/features/admin/payment/widgets/payment_review.dart';
 import 'package:sizer/sizer.dart';
 
 import '../../../core/app_export.dart';
@@ -62,7 +63,7 @@ class _PaymentManagementState extends State<PaymentManagement>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     loadPaymentDefinitions();
   }
 
@@ -283,7 +284,7 @@ class _PaymentManagementState extends State<PaymentManagement>
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: const Text('Edit Payment Definitionz'),
+              title: const Text('Edit Payment Definition'),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -469,8 +470,9 @@ class _PaymentManagementState extends State<PaymentManagement>
                   fontWeight: FontWeight.w400,
                 ),
                 tabs: const [
-                  Tab(text: 'Payment Definitions'),
-                  Tab(text: 'Payment Methods'),
+                  Tab(text: 'Review Payments'),
+                  Tab(text: 'Definitions'),
+                  Tab(text: 'Gateways'),
                 ],
               ),
             ),
@@ -478,6 +480,7 @@ class _PaymentManagementState extends State<PaymentManagement>
               child: TabBarView(
                 controller: _tabController,
                 children: [
+                  ReviewPaymentsTabWidget(),
                   PaymentDefinitionTabWidget(
                     definitions: _paymentDefinitions,
                     onAdd: _addPaymentDefinition,

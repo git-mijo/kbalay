@@ -89,6 +89,7 @@ class ResidentAnnouncementsFeed extends StatelessWidget {
       ),
     );
   }
+  
 }
 
 /// Full-page announcement view

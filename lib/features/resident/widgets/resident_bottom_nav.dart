@@ -31,14 +31,9 @@ class ResidentBottomNav extends StatelessWidget {
           unselectedLabelStyle: const TextStyle(fontSize: 12),
           items: const [
             BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.local_mall),
-              label: 'Marketplace',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.list_alt),
-              label: 'My Requests',
-            ),
+            BottomNavigationBarItem(icon: Icon(Icons.group), label: 'Community'),
+            BottomNavigationBarItem(icon: Icon(Icons.local_mall), label: 'Marketplace'),
+            BottomNavigationBarItem(icon: Icon(Icons.list_alt),label: 'My Requests'),
             BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
           ],
         ),

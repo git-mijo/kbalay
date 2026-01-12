@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hoa/features/authentication/services/auth_service.dart';
 
+import 'package:flutter_hoa/features/chats/page.dart';
+
 class ChatPage extends StatefulWidget {
   final String requestId;
   final String requesterId;
@@ -27,19 +29,47 @@ class _ChatPageState extends State<ChatPage> {
   String? chatId;
   Map<String, dynamic>? requestData;
   Map<String, dynamic>? otherData;
-  bool _offerSent = false;
+
+  // Offer status of current user
+  String? _offerStatus;
   bool _loadingOfferStatus = true;
-  bool _otherOfferSent = false;
+
+  // Offer status of other user (on requester side)
+  String? _otherOfferStatus;
   bool _loadingOtherOffer = true;
 
   @override
   void initState() {
     super.initState();
     _initChat();
-    _checkIfOfferSent();
+    _checkOfferStatus();
   }
 
-  Future<void> _checkOtherOffer() async {
+  /// Check current user offer status
+  Future<void> _checkOfferStatus() async {
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) return;
+
+    final doc = await _db
+        .collection('requests')
+        .doc(widget.requestId)
+        .collection('offers')
+        .where('offerUserId', isEqualTo: userId)
+        .limit(1)
+        .get();
+
+    setState(() {
+      if (doc.docs.isNotEmpty) {
+        _offerStatus = doc.docs.first['offerStatus'] as String?;
+      } else {
+        _offerStatus = null;
+      }
+      _loadingOfferStatus = false;
+    });
+  }
+
+  /// Check other user offer status for requester side button
+  Future<void> _checkOtherOfferStatus() async {
     final otherUserId = otherData?['userId'];
     if (otherUserId == null || widget.requestId.isEmpty) return;
 
@@ -52,11 +82,16 @@ class _ChatPageState extends State<ChatPage> {
         .get();
 
     setState(() {
-      _otherOfferSent = doc.docs.isNotEmpty;
+      if (doc.docs.isNotEmpty) {
+        _otherOfferStatus = doc.docs.first['offerStatus'] as String?;
+      } else {
+        _otherOfferStatus = null;
+      }
       _loadingOtherOffer = false;
     });
   }
 
+  /// Initialize chat and load other user info
   Future<void> _initChat() async {
     final userId = _auth.currentUser?.uid;
     if (userId == null) return;
@@ -65,7 +100,6 @@ class _ChatPageState extends State<ChatPage> {
 
     final doc = await _db.collection('requests').doc(widget.requestId).get();
     if (!doc.exists) return;
-
     requestData = doc.data();
 
     // Use chatId if already provided
@@ -119,31 +153,14 @@ class _ChatPageState extends State<ChatPage> {
 
       if (snapshot.docs.isNotEmpty) {
         otherData = snapshot.docs.first.data();
-        await _checkOtherOffer();
+        await _checkOtherOfferStatus();
       }
     }
 
     setState(() {});
   }
 
-  Future<void> _checkIfOfferSent() async {
-    final userId = _auth.currentUser?.uid;
-    if (userId == null) return;
-
-    final doc = await _db
-        .collection('requests')
-        .doc(widget.requestId)
-        .collection('offers')
-        .where('offerUserId', isEqualTo: userId)
-        .limit(1)
-        .get();
-
-    setState(() {
-      _offerSent = doc.docs.isNotEmpty;
-      _loadingOfferStatus = false;
-    });
-  }
-
+  /// Send / Cancel offer
   Future<void> _offerHelp() async {
     final userId = _auth.currentUser?.uid;
     if (userId == null || widget.requestId.isEmpty || chatId == null) return;
@@ -160,10 +177,12 @@ class _ChatPageState extends State<ChatPage> {
     bool isCanceledOffer = false;
 
     if (existingQuery.docs.isNotEmpty) {
+      // Cancel offer
       await offersRef.doc(existingQuery.docs.first.id).delete();
+      _offerStatus = null;
       isCanceledOffer = true;
-      setState(() => _offerSent = false);
     } else {
+      // Send new offer
       final newDoc = offersRef.doc();
       await newDoc.set({
         'offerId': newDoc.id,
@@ -171,9 +190,11 @@ class _ChatPageState extends State<ChatPage> {
         'offerUserId': userId,
         'timestamp': FieldValue.serverTimestamp(),
       });
+      _offerStatus = 'pending';
       isNewOffer = true;
-      setState(() => _offerSent = true);
     }
+
+    setState(() {});
 
     // Add system message
     final systemMessage = isNewOffer
@@ -228,6 +249,78 @@ class _ChatPageState extends State<ChatPage> {
 
     _controller.clear();
   }
+
+  Future<void> approveOffer(String requestId, String? offerId, String offerUserId) async {
+    final db = FirebaseFirestore.instance;
+
+    // 1️⃣ Ensure we have the offerId
+    String? actualOfferId = offerId;
+
+    if (actualOfferId == null || actualOfferId.isEmpty) {
+      // Find the offer document by userId
+      final query = await db
+          .collection("requests")
+          .doc(requestId)
+          .collection("offers")
+          .where("offerUserId", isEqualTo: offerUserId)
+          .limit(1)
+          .get();
+
+      if (query.docs.isEmpty) {
+        print("No offer found for user $offerUserId in request $requestId");
+        return; // nothing to approve
+      }
+
+      actualOfferId = query.docs.first.id;
+    }
+
+    // 2️⃣ Update offer status to Approved
+    await db
+        .collection("requests")
+        .doc(requestId)
+        .collection("offers")
+        .doc(actualOfferId)
+        .update({"offerStatus": "Approved"});
+
+    // 3️⃣ Count all approved offers for this request
+    final approvedOffersQuery = await db
+        .collection("requests")
+        .doc(requestId)
+        .collection("offers")
+        .where("offerStatus", isEqualTo: "Approved")
+        .get();
+
+    final approvedCount = approvedOffersQuery.docs.length;
+
+    // 4️⃣ Update helpersAccepted in the request document
+    await db.collection("requests").doc(requestId).update({
+      "helpersAccepted": approvedCount,
+    });
+
+    // 5️⃣ Add system message in chat
+    final chatQuery = await db
+        .collection('chats')
+        .where('relatedRequestId', isEqualTo: requestId)
+        .where('participants', arrayContains: offerUserId)
+        .limit(1)
+        .get();
+
+    if (chatQuery.docs.isNotEmpty) {
+      final chatId = chatQuery.docs.first.id;
+      final systemMessage = "🎉 Offer has been approved!";
+      await db.collection('chats').doc(chatId).collection('messages').add({
+        'content': systemMessage,
+        'senderId': 'system',
+        'timestamp': FieldValue.serverTimestamp(),
+        'mediaUrl': null,
+        'isSystemMessage': true,
+      });
+      await db.collection('chats').doc(chatId).update({
+        'lastMessageTime': FieldValue.serverTimestamp(),
+      });
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -352,27 +445,43 @@ class _ChatPageState extends State<ChatPage> {
                 ],
               ),
             ),
-            const SizedBox(height: 5),
+          const SizedBox(height: 5),
         ],
       ),
     );
   }
 
+  /// Offer Help Button (for user viewing someone else's request)
   Widget _buildOfferRow() {
+    Color buttonColor;
+    String buttonText;
+    bool buttonEnabled = true;
+
+    switch (_offerStatus) {
+      case 'Approved':
+        buttonText = 'Offer Approved!';
+        buttonEnabled = false;
+        buttonColor = Colors.green;
+        break;
+      case 'Denied':
+        buttonColor = Colors.redAccent;
+        buttonText = 'Offer Denied';
+        buttonEnabled = false;
+        break;
+      case 'pending':
+        buttonColor = Colors.orangeAccent;
+        buttonText = 'Cancel Offer';
+        break;
+      default: // no offer yet
+        buttonColor = Colors.blueAccent;
+        buttonText = 'Offer Help';
+    }
+
     return Container(
       color: Colors.grey.shade100,
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
-          // CircleAvatar(
-          //   radius: 24,
-          //   backgroundColor: Colors.blueAccent,
-          //   child: const Text(
-          //     'A',
-          //     style: TextStyle(fontSize: 20, color: Colors.white),
-          //   ),
-          // ),
-          // const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -382,10 +491,10 @@ class _ChatPageState extends State<ChatPage> {
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 const SizedBox(height: 4),
-                const Text(
-                  'Posted by:',
-                  style: TextStyle(color: Colors.black54),
-                ),
+                // const Text(
+                //   'Posted by:',
+                //   style: TextStyle(color: Colors.black54),
+                // ),
               ],
             ),
           ),
@@ -396,36 +505,53 @@ class _ChatPageState extends State<ChatPage> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : ElevatedButton(
-                  onPressed: _offerHelp,
+                  onPressed: buttonEnabled ? _offerHelp : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _offerSent ? Colors.redAccent : Colors.blueAccent,
+                    backgroundColor: buttonColor,
                   ),
-                  child: Text(_offerSent ? "Cancel offer" : "Offer help"),
+                  child: Text(buttonText),
                 ),
         ],
       ),
     );
   }
 
+  /// Requester side: show status of other user's offer
   Widget _buildRequesterRow() {
     final name =
         '${otherData?['firstName'] ?? ''} ${otherData?['lastName'] ?? ''}'.trim();
-        
+
+    Color buttonColor = Colors.blueAccent;
+    String buttonText = "Request Help";
+    bool buttonEnabled = true;
+
+    switch (_otherOfferStatus) {
+      case 'Approved':
+        buttonColor = Colors.green;
+        buttonText = "Offer Approved!";
+        buttonEnabled = false; // already approved, no action
+        break;
+      case 'Denied':
+        buttonColor = Colors.redAccent;
+        buttonText = "Offer Denied";
+        buttonEnabled = false;
+        break;
+      case 'pending':
+        buttonColor = Colors.orangeAccent;
+        buttonText = "Approve Offer";
+        buttonEnabled = true; // allow approving
+        break;
+      default:
+        buttonColor = Colors.blueAccent;
+        buttonText = "Request Help";
+        buttonEnabled = true;
+    }
 
     return Container(
       color: Colors.grey.shade100,
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
-          // CircleAvatar(
-          //   radius: 24,
-          //   backgroundColor: Colors.blueAccent,
-          //   child: const Text(
-          //     'B',
-          //     style: TextStyle(fontSize: 20, color: Colors.white),
-          //   ),
-          // ),
-          // const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -440,21 +566,31 @@ class _ChatPageState extends State<ChatPage> {
               ],
             ),
           ),
-          if(requestData?['status'] != 'Completed')
-            if (_loadingOtherOffer)
-              const SizedBox(
-                width: 36,
-                height: 36,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            else if (!_otherOfferSent)
-              ElevatedButton(
-                onPressed: () {
-                  print("Request help pressed");
-                },
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
-                child: const Text("Request Help"),
-              ),
+          if(buttonText == "Request Help")
+            const SizedBox(height: 4,)
+          else if(requestData?['status'] != 'Completed')
+            _loadingOtherOffer
+                ? const SizedBox(
+                    width: 36,
+                    height: 36,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : ElevatedButton(
+                    onPressed: buttonEnabled && _otherOfferStatus == 'pending'
+                        ? () {
+                            approveOffer(
+                              widget.requestId,
+                              '',
+                              otherData?['userId'] ?? '',
+                            ).then((_) {
+                              // Refresh status after approval
+                              _checkOtherOfferStatus();
+                            });
+                          }
+                        : null,
+                    style: ElevatedButton.styleFrom(backgroundColor: buttonColor),
+                    child: Text(buttonText),
+                  ),
         ],
       ),
     );
