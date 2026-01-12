@@ -284,7 +284,7 @@ class _PaymentManagementState extends State<PaymentManagement>
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: const Text('Edit Payment Definitionz'),
+              title: const Text('Edit Payment Definition'),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,

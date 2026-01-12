@@ -77,6 +77,9 @@ class _ReportDueUsersPageState extends State<ReportDueUsersPage> {
 
                 final List<Map<String, dynamic>> paymentList = [];
 
+                // Map to accumulate expected amount per category
+                final Map<String, double> expectedPerCategory = {};
+
                 for (var doc in payments) {
                   final data = doc.data() as Map<String, dynamic>;
                   final userId = data['userId'];
@@ -98,6 +101,14 @@ class _ReportDueUsersPageState extends State<ReportDueUsersPage> {
                     dueDate = DateTime.now();
                   }
 
+                  // Determine amount owed
+                  final amount = (data['amountOwed'] ?? category['defaultFee'] ?? 0).toDouble();
+
+                  // Add to summary map
+                  final catName = category['categoryName'] ?? 'Unknown';
+                  expectedPerCategory[catName] = (expectedPerCategory[catName] ?? 0) + amount;
+
+                  // Add to payment list
                   paymentList.add({
                     'paymentId': doc.id,
                     'userId': userId,
@@ -105,94 +116,142 @@ class _ReportDueUsersPageState extends State<ReportDueUsersPage> {
                     'lastName': user['lastName'] ?? '',
                     'lotId': user['lotId'] ?? '',
                     'profileImageBase64': user['profileImageBase64'] ?? '',
-                    'categoryName': category['categoryName'] ?? '',
-                    'amount': (data['amountOwed'] ?? category['defaultFee'] ?? 0).toDouble(),
+                    'categoryName': catName,
+                    'amount': amount,
                     'dueDate': dueDate,
                     'status': data['status'] ?? 'Pending',
                   });
                 }
 
-                return ListView.separated(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: paymentList.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final item = paymentList[index];
+                // Sort by due date
+                paymentList.sort((a, b) => (a['dueDate'] as DateTime).compareTo(b['dueDate'] as DateTime));
 
-                    Uint8List? userImage;
-                    try {
-                      final base64Str = item['profileImageBase64'] as String;
-                      if (base64Str.isNotEmpty) userImage = base64Decode(base64Str);
-                    } catch (_) {
-                      userImage = null;
-                    }
-
-                    return Container(
+                return Column(
+                  children: [
+                    // ---------------- Summary Section ----------------
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.all(12),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: Colors.grey.shade100,
                         borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                              color: Colors.black12, blurRadius: 4, offset: const Offset(0, 2))
-                        ],
                       ),
-                      child: Row(
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          CircleAvatar(
-                            radius: 28,
-                            backgroundColor: Colors.blueAccent,
-                            backgroundImage: userImage != null ? MemoryImage(userImage) : null,
-                            child: userImage == null
-                                ? Text(
-                                    item['firstName'].isNotEmpty
-                                        ? item['firstName'][0].toUpperCase()
-                                        : 'U',
-                                    style: const TextStyle(color: Colors.white, fontSize: 18),
-                                  )
-                                : null,
+                          const Text(
+                            'Expected Amount per Category',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('${item['firstName']} ${item['lastName']}',
-                                    style:
-                                        const TextStyle(fontWeight: FontWeight.bold)),
-                                const SizedBox(height: 2),
-                                Text('Lot: ${item['lotId']}',
-                                    style: const TextStyle(
-                                        fontSize: 12, color: Colors.black54)),
-                                const SizedBox(height: 2),
-                                Text('Category: ${item['categoryName']}',
-                                    style: const TextStyle(
-                                        fontSize: 12, color: Colors.black87)),
-                                const SizedBox(height: 2),
-                                Text('Amount: ₱${(item['amount'] as double).toStringAsFixed(2)}',
-                                    style: const TextStyle(
-                                        fontSize: 12, color: Colors.black87)),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Due Date: ${DateFormat('MMM d, yyyy').format(item['dueDate'])}',
-                                  style: const TextStyle(fontSize: 12, color: Colors.red),
+                          const SizedBox(height: 8),
+                          ...expectedPerCategory.entries.map((e) => Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 2),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(e.key, style: const TextStyle(fontSize: 14)),
+                                    Text('₱${e.value.toStringAsFixed(2)}',
+                                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  ],
                                 ),
-                                const SizedBox(height: 2),
-                                Text('Status: ${item['status']}',
-                                    style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        color: item['status'] == 'Due'
-                                            ? Colors.red
-                                            : Colors.orange)),
-                              ],
-                            ),
-                          ),
+                              )),
                         ],
                       ),
-                    );
-                  },
+                    ),
+
+                    // ---------------- List of Due Payments ----------------
+                    Expanded(
+                      child: ListView.separated(
+                        padding: const EdgeInsets.all(12),
+                        itemCount: paymentList.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          final item = paymentList[index];
+
+                          Uint8List? userImage;
+                          try {
+                            final base64Str = item['profileImageBase64'] as String;
+                            if (base64Str.isNotEmpty) userImage = base64Decode(base64Str);
+                          } catch (_) {
+                            userImage = null;
+                          }
+
+                          return Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                    color: Colors.black12,
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2))
+                              ],
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                CircleAvatar(
+                                  radius: 28,
+                                  backgroundColor: Colors.blueAccent,
+                                  backgroundImage:
+                                      userImage != null ? MemoryImage(userImage) : null,
+                                  child: userImage == null
+                                      ? Text(
+                                          item['firstName'].isNotEmpty
+                                              ? item['firstName'][0].toUpperCase()
+                                              : 'U',
+                                          style: const TextStyle(
+                                              color: Colors.white, fontSize: 18),
+                                        )
+                                      : null,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('${item['firstName']} ${item['lastName']}',
+                                          style: const TextStyle(fontWeight: FontWeight.bold)),
+                                      const SizedBox(height: 2),
+                                      Text('Lot: ${item['lotId']}',
+                                          style: const TextStyle(
+                                              fontSize: 12, color: Colors.black54)),
+                                      const SizedBox(height: 2),
+                                      Text('Category: ${item['categoryName']}',
+                                          style: const TextStyle(
+                                              fontSize: 12, color: Colors.black87)),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                          'Amount: ₱${(item['amount'] as double).toStringAsFixed(2)}',
+                                          style: const TextStyle(
+                                              fontSize: 12, color: Colors.black87)),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Due Date: ${DateFormat('MMM d, yyyy').format(item['dueDate'])}',
+                                        style:
+                                            const TextStyle(fontSize: 12, color: Colors.red),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text('Status: ${item['status']}',
+                                          style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: item['status'].toString().toLowerCase() ==
+                                                      'due'
+                                                  ? Colors.red
+                                                  : Colors.orange)),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 );
               },
             ),

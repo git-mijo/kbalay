@@ -214,7 +214,11 @@ Future<List<Map<String, dynamic>>> _getUserDuesGrouped(
   final now = DateTime.now();
 
   // 1️⃣ Get categories
-  final categorySnapshot = await db.collection('payment_categories').get();
+  final categorySnapshot = await db
+    .collection('payment_categories')
+    .where('dueDayOfMonth', isLessThanOrEqualTo: now.day)
+    .get();
+
   final categories = categorySnapshot.docs.map((d) {
     final data = d.data();
     return {
@@ -228,6 +232,8 @@ Future<List<Map<String, dynamic>>> _getUserDuesGrouped(
   // 2️⃣ Get user payments
   final paymentsSnapshot =
       await db.collection('payments').where('userId', isEqualTo: userId).get();
+
+  if(paymentsSnapshot.docs.isEmpty) return [];
 
   final payments = paymentsSnapshot.docs.map((p) {
     final data = p.data();
@@ -305,7 +311,7 @@ Future<List<Map<String, dynamic>>> _getUserDuesGrouped(
   // 4️⃣ Group dues for UI
   final Map<String, List<Map<String, dynamic>>> grouped = {
     'Pending Review': [],
-    'Due / Upcoming': [],
+    'Due Payments': [],
     'Paid': [],
   };
 
