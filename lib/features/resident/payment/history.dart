@@ -20,7 +20,7 @@ class PaymentHistoryPage extends StatelessWidget {
         stream: db
             .collection('payments')
             .where('userId', isEqualTo: userId)
-            .orderBy('dateDue', descending: true) // recent payments first
+            // .orderBy('dateDue', descending: true) // recent payments first
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {

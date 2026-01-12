@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:csv/csv.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
@@ -60,6 +61,53 @@ class _AdminDashboardState extends State<AdminDashboard> {
       'icon': Icons.edit,
     },
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDashboardMetrics();
+  }
+
+
+  Future<void> _loadDashboardMetrics() async {
+    try {
+      final firestore = FirebaseFirestore.instance;
+
+      // Total residents
+      final residentsSnapshot = await firestore.collection('master_residents').get();
+      final totalResidents = residentsSnapshot.docs.length;
+
+      // Pending payments
+      final pendingPaymentsSnapshot = await firestore
+          .collection('payments')
+          .where('status', whereIn: ['due', 'Pending', 'Due', 'pending'])
+          .get();
+      final pendingPayments = pendingPaymentsSnapshot.docs.length;
+
+      // Collection rate = collected / (collected + pending) * 100
+      double collectionRate = 0;
+      final allPaymentsSnapshot = await firestore.collection('payments').get();
+      int totalPaymentsCount = allPaymentsSnapshot.docs.length;
+      int paidCount = allPaymentsSnapshot.docs
+          .where((doc) => (doc.data()['status'] ?? '') == 'Paid')
+          .length;
+      if (totalPaymentsCount > 0) {
+        collectionRate = (paidCount / totalPaymentsCount) * 100;
+      }
+
+      setState(() {
+        _totalResidents = totalResidents;
+        _pendingPayments = pendingPayments;
+        _collectionRate = collectionRate;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load dashboard metrics: $e')),
+        );
+      }
+    }
+  }
 
   Future<void> _handleCsvUpload() async {
     try {
@@ -242,9 +290,43 @@ class _AdminDashboardState extends State<AdminDashboard> {
         variant: CustomAppBarVariant.standard,
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              HapticFeedback.lightImpact();
+            icon: const Icon(Icons.logout), // changed icon to logout
+            tooltip: 'Sign Out',
+            onPressed: () async {
+              // Optional: confirmation dialog
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Confirm Sign Out'),
+                  content: const Text('Are you sure you want to sign out?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Cancel'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('Sign Out'),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirm == true) {
+                try {
+                  await FirebaseAuth.instance.signOut();
+                  if (mounted) {
+                    // Navigate to login page after sign out
+                    Navigator.pushReplacementNamed(context, AppRoutes.signIn);
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to sign out: $e')),
+                    );
+                  }
+                }
+              }
             },
           ),
         ],

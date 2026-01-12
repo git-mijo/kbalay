@@ -85,7 +85,7 @@ class _ReviewPaymentsTabWidgetState extends State<ReviewPaymentsTabWidget> {
 
             final payments = snapshot.data!.docs.map((doc) {
               final data = doc.data() as Map<String, dynamic>;
-              data['docId'] = doc.id; // keep document ID
+              data['paymentId'] = doc.id; // keep document ID
               return data;
             }).toList();
 
@@ -234,6 +234,8 @@ class _ReviewPaymentsTabWidgetState extends State<ReviewPaymentsTabWidget> {
                     ),
                   ),
                 );
+
+
               },
             );
 

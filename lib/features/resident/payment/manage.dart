@@ -130,45 +130,45 @@ class ManageDuesPage extends StatelessWidget {
                               style: const TextStyle(fontSize: 12, color: Colors.black54),
                             ),
                             const SizedBox(height: 6),
-                            Row(
-                              children: [
-                                // Frequency tag
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue.shade100,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    freqStr,
-                                    style: const TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.blueAccent,
-                                    ),
-                                  ),
-                                ),
-                                const Spacer(),
-                                // Status tag
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: statusColor.withOpacity(0.15),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    status,
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      color: statusColor,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                            // Row(
+                            //   children: [
+                            //     // Frequency tag
+                            //     Container(
+                            //       padding: const EdgeInsets.symmetric(
+                            //           horizontal: 8, vertical: 2),
+                            //       decoration: BoxDecoration(
+                            //         color: Colors.blue.shade100,
+                            //         borderRadius: BorderRadius.circular(12),
+                            //       ),
+                            //       child: Text(
+                            //         freqStr,
+                            //         style: const TextStyle(
+                            //           fontSize: 10,
+                            //           fontWeight: FontWeight.bold,
+                            //           color: Colors.blueAccent,
+                            //         ),
+                            //       ),
+                            //     ),
+                            //     const Spacer(),
+                            //     // Status tag
+                            //     Container(
+                            //       padding: const EdgeInsets.symmetric(
+                            //           horizontal: 8, vertical: 2),
+                            //       decoration: BoxDecoration(
+                            //         color: statusColor.withOpacity(0.15),
+                            //         borderRadius: BorderRadius.circular(12),
+                            //       ),
+                            //       child: Text(
+                            //         status,
+                            //         style: TextStyle(
+                            //           fontSize: 10,
+                            //           fontWeight: FontWeight.bold,
+                            //           color: statusColor,
+                            //         ),
+                            //       ),
+                            //     ),
+                            //   ],
+                            // ),
                           ],
                         ),
                         onTap: (status.toLowerCase() == 'due' || status.toLowerCase() == 'upcoming' || status.toLowerCase() == 'rejected')
@@ -177,7 +177,8 @@ class ManageDuesPage extends StatelessWidget {
                                   context,
                                   MaterialPageRoute(
                                     builder: (_) => PayDuesPage(
-                                      paymentId: due['categoryId'],
+                                      paymentId: due['paymentId'],
+                                      categoryId: due['categoryId'],
                                       categoryName: categoryName,
                                       amount: amount,
                                       dueDate: dueDate,
@@ -189,6 +190,7 @@ class ManageDuesPage extends StatelessWidget {
                             : null,
                       ),
                     );
+
                   }).toList(),
 
                   // Divider between groups
@@ -205,128 +207,123 @@ class ManageDuesPage extends StatelessWidget {
     );
   }
 
-  /// Get pending dues for the user and group by Paid, Pending, Due/Upcoming
-  Future<List<Map<String, dynamic>>> _getUserDuesGrouped(
-      FirebaseFirestore db, String? userId) async {
-    if (userId == null) return [];
+Future<List<Map<String, dynamic>>> _getUserDuesGrouped(
+    FirebaseFirestore db, String? userId) async {
+  if (userId == null) return [];
 
-    final now = DateTime.now();
+  final now = DateTime.now();
 
-    // 1️⃣ Fetch all active dues
-    final activeSnapshot = await db.collection('payment_categories').get();
-    final activeDues = activeSnapshot.docs
-        .map((d) => d.data())
-        .map((d) => {
-              'categoryId': d['categoryId'],
-              'categoryName': d['categoryName'],
-              'defaultFee': d['defaultFee'],
-              'dueDayOfMonth': d['dueDayOfMonth'],
-              'frequency': d['frequency'] ?? 3, // default monthly
-            })
-        .toList();
-
-    // 2️⃣ Fetch user payments
-    final paymentsSnapshot =
-        await db.collection('payments').where('userId', isEqualTo: userId).get();
-    final payments = paymentsSnapshot.docs
-        .map((d) => d.data())
-        .map((p) => {
-              'categoryId': p['categoryId'],
-              'billingPeriod': p['billingPeriod'],
-              'amountOwed': p['amountOwed'],
-              'status': p['status'],
-              'dateDue': (p['dateDue'] as Timestamp).toDate(),
-            })
-        .toList();
-
-    List<Map<String, dynamic>> dueList = [];
-
-    for (var due in activeDues) {
-      String billingPeriod;
-      DateTime dueDate;
-
-      // Compute dueDate & billing period
-      if (due['frequency'] == 4) {
-        final year = now.year;
-        final month = due['dueDayOfMonth'] ?? 1;
-        dueDate = DateTime(year, month, 30);
-        billingPeriod = DateFormat('yyyy').format(dueDate);
-      } else if (due['frequency'] == 3) {
-        final year = now.year;
-        final month = now.month;
-        dueDate = DateTime(year, month, due['dueDayOfMonth']);
-        billingPeriod = DateFormat('MMM yyyy').format(dueDate);
-      } else if (due['frequency'] == 2) {
-        int targetWeekday = due['dueDayOfMonth'] ?? 1;
-        DateTime startOfWeek = now.subtract(Duration(days: now.weekday % 7));
-        dueDate = startOfWeek.add(Duration(days: targetWeekday));
-        if (dueDate.isBefore(now)) {
-          dueDate = dueDate.add(const Duration(days: 7));
-        }
-        billingPeriod = 'Week of ${DateFormat('MMM d, yyyy').format(dueDate)}';
-      } else if (due['frequency'] == 5) {
-        dueDate = now;
-        billingPeriod = DateFormat('MMM d, yyyy').format(dueDate);
-      } else {
-        final year = now.year;
-        final month = now.month;
-        dueDate = DateTime(year, month, due['dueDayOfMonth']);
-        billingPeriod = DateFormat('MMM yyyy').format(dueDate);
-      }
-
-      // Check if user has payment for this category & billingPeriod
-      final payment = payments.firstWhere(
-          (p) =>
-              p['categoryId'] == due['categoryId'] &&
-              p['billingPeriod'] == billingPeriod,
-          orElse: () => {});
-
-      String status;
-      double amountOwed = due['defaultFee']?.toDouble() ?? 0;
-
-      if (payment.isEmpty) {
-        if (now.isAfter(dueDate)) {
-          status = 'Due';
-        } else {
-          status = 'Upcoming';
-        }
-      } else {
-        status = (payment['status'] ?? 'Upcoming').toString();
-        amountOwed = payment['amountOwed']?.toDouble() ?? amountOwed;
-      }
-
-      dueList.add({
-        'categoryId': due['categoryId'],
-        'frequency': due['frequency'],
-        'categoryName': due['categoryName'],
-        'amountOwed': amountOwed,
-        'dateDue': dueDate,
-        'status': status,
-        'billingPeriod': billingPeriod,
-      });
-    }
-
-    // Group by status: Paid, Pending, Due/Upcoming
-    final Map<String, List<Map<String, dynamic>>> groupedMap = {
-      'Pending Review': [],
-      'Due / Upcoming': [],
-      'Paid': [],
+  // 1️⃣ Get categories
+  final categorySnapshot = await db.collection('payment_categories').get();
+  final categories = categorySnapshot.docs.map((d) {
+    final data = d.data();
+    return {
+      'categoryId': data['categoryId'],
+      'categoryName': data['categoryName'],
+      'defaultFee': (data['defaultFee'] ?? 0).toDouble(),
+      'dueDayOfMonth': data['dueDayOfMonth'] ?? 1,
     };
+  }).toList();
 
-    for (var d in dueList) {
-      final s = d['status'].toLowerCase();
-      if (s == 'paid') {
-        groupedMap['Paid']!.add(d);
-      } else if (s == 'pending') {
-        groupedMap['Pending Review']!.add(d);
-      } else {
-        groupedMap['Due / Upcoming']!.add(d);
-      }
+  // 2️⃣ Get user payments
+  final paymentsSnapshot =
+      await db.collection('payments').where('userId', isEqualTo: userId).get();
+
+  final payments = paymentsSnapshot.docs.map((p) {
+    final data = p.data();
+    DateTime dateDue;
+
+    if (data['dateDue'] is Timestamp) {
+      dateDue = (data['dateDue'] as Timestamp).toDate();
+    } else if (data['dateDue'] is int) {
+      dateDue = DateTime(now.year, now.month, data['dateDue']);
+    } else {
+      dateDue = now;
     }
 
-    // Return as list for ListView
-    return groupedMap.entries
-        .map((e) => {'group': e.key, 'items': e.value})
-        .toList();
+    return {
+      'paymentId': p.id, // Firestore document ID
+      'categoryId': data['categoryId'],
+      'billingPeriod': data['billingPeriod'],
+      'amountOwed': (data['amountOwed'] ?? 0).toDouble(),
+      'status': (data['status'] ?? 'Upcoming').toString(),
+      'dateDue': dateDue,
+    };
+  }).toList();
+
+  List<Map<String, dynamic>> dueList = [];
+
+  // 3️⃣ Generate dues list for each category
+  for (var cat in categories) {
+    final categoryId = cat['categoryId'];
+    final categoryName = cat['categoryName'];
+    final defaultFee = cat['defaultFee'];
+    final dueDay = cat['dueDayOfMonth'];
+
+    final dueDate = DateTime(now.year, now.month, dueDay);
+
+    // Billing period in Firestore format "YYYY-MM"
+    final billingPeriod =
+        '${dueDate.year}-${dueDate.month.toString().padLeft(2, '0')}';
+
+    // Find existing payment if any
+    Map<String, dynamic>? existingPayment;
+    try {
+      existingPayment = payments.firstWhere(
+        (p) =>
+            p['categoryId'] == categoryId &&
+            p['billingPeriod'] == billingPeriod,
+      );
+    } catch (_) {
+      existingPayment = null;
+    }
+
+    String status;
+    double amountOwed = defaultFee;
+    String? paymentId;
+
+    if (existingPayment == null) {
+      status = now.isAfter(dueDate) ? 'Due' : 'Upcoming';
+      paymentId = null;
+    } else {
+      status = existingPayment['status'] ?? 'Upcoming';
+      amountOwed = existingPayment['amountOwed'] ?? defaultFee;
+      paymentId = existingPayment['paymentId'];
+    }
+
+    dueList.add({
+      'paymentId': paymentId,
+      'categoryId': categoryId,
+      'categoryName': categoryName,
+      'billingPeriod': billingPeriod,
+      'amountOwed': amountOwed,
+      'dateDue': dueDate,
+      'status': status,
+    });
   }
+
+  // 4️⃣ Group dues for UI
+  final Map<String, List<Map<String, dynamic>>> grouped = {
+    'Pending Review': [],
+    'Due / Upcoming': [],
+    'Paid': [],
+  };
+
+  for (var item in dueList) {
+    final s = item['status'].toLowerCase();
+    if (s == 'paid') {
+      grouped['Paid']!.add(item);
+    } else if (s == 'pending' || s == 'pending review') {
+      grouped['Pending Review']!.add(item);
+    } else {
+      grouped['Due / Upcoming']!.add(item);
+    }
+  }
+
+  return grouped.entries
+      .map((e) => {'group': e.key, 'items': e.value})
+      .toList();
+}
+
+  
 }

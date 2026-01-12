@@ -25,12 +25,20 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   bool _loading = false;
 
+  /// Update payment status (Paid / Rejected)
   Future<void> _updateStatus(String status) async {
+    if (widget.paymentData['paymentId'] == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid payment ID')),
+      );
+      return;
+    }
+
     setState(() => _loading = true);
     try {
       await _db
           .collection('payments')
-          .doc(widget.paymentData['docId'])
+          .doc(widget.paymentData['paymentId'])
           .update({'status': status});
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -61,26 +69,46 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
     final billingPeriod = payment['billingPeriod'] ?? '';
     final frequencyMap = {1: 'Daily', 2: 'Weekly', 3: 'Monthly', 4: 'Yearly', 5: 'One-time'};
     final frequency = frequencyMap[type['frequency']] ?? 'Unknown';
-    final submittedAt = (payment['submittedAt'] as Timestamp?)?.toDate();
-    final dateDue = (payment['dateDue'] as Timestamp?)?.toDate();
-    final proofBase64 = payment['proofRef'] ?? '';
 
-    Uint8List? proofImage;
-    try {
-      if (proofBase64.isNotEmpty) {
-        proofImage = base64Decode(proofBase64);
-      }
-    } catch (_) {
-      proofImage = null;
+    // Handle submittedAt timestamp safely
+    DateTime? submittedAt;
+    if (payment['submittedAt'] is Timestamp) {
+      submittedAt = (payment['submittedAt'] as Timestamp).toDate();
+    } else if (payment['submittedAt'] is DateTime) {
+      submittedAt = payment['submittedAt'];
     }
 
-    // User photo
+    // Handle due date safely
+    DateTime? dateDue;
+    if (payment['dateDue'] is Timestamp) {
+      dateDue = (payment['dateDue'] as Timestamp).toDate();
+    } else if (payment['dateDue'] is int) {
+      final now = DateTime.now();
+      dateDue = DateTime(now.year, now.month, payment['dateDue']);
+    } else if (payment['dateDue'] is DateTime) {
+      dateDue = payment['dateDue'];
+    }
+
+    // Decode proof image
+    Uint8List? proofImage;
+    final proofBase64 = payment['proofRef'] ?? '';
+    if (proofBase64.isNotEmpty) {
+      try {
+        proofImage = base64Decode(proofBase64);
+      } catch (_) {
+        proofImage = null;
+      }
+    }
+
+    // Decode user image
     Uint8List? userImage;
-    try {
-      final photoBase64 = user['profileImageBase64'] ?? '';
-      if (photoBase64.isNotEmpty) userImage = base64Decode(photoBase64);
-    } catch (_) {
-      userImage = null;
+    final photoBase64 = user['profileImageBase64'] ?? '';
+    if (photoBase64.isNotEmpty) {
+      try {
+        userImage = base64Decode(photoBase64);
+      } catch (_) {
+        userImage = null;
+      }
     }
 
     String formatDate(DateTime? dt) {

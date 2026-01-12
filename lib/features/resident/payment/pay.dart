@@ -8,6 +8,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class PayDuesPage extends StatefulWidget {
   final String paymentId;
+  final String categoryId;
   final String categoryName;
   final double amount;
   final DateTime dueDate;
@@ -16,6 +17,7 @@ class PayDuesPage extends StatefulWidget {
   const PayDuesPage({
     super.key,
     required this.paymentId,
+    required this.categoryId,
     required this.categoryName,
     required this.amount,
     required this.dueDate,
@@ -72,13 +74,8 @@ class _PayDuesPageState extends State<PayDuesPage> {
 
       final userData = snapshot.docs.first.data();
 
-      await FirebaseFirestore.instance.collection('payments').add({
+      await FirebaseFirestore.instance.collection('payments').doc(widget.paymentId).update({
         'lotId': userData['lotId'],
-        'userId': AuthService().currentUser!.uid,
-        'categoryId': widget.paymentId,
-        'billingPeriod': widget.billingPeriod,
-        'amountOwed': widget.amount,
-        'dateDue': widget.dueDate,
         'proofRef': _proofFile,
         'status': 'Pending',
         'submittedAt': FieldValue.serverTimestamp(),
